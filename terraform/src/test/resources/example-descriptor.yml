@@ -1,0 +1,58 @@
+dataProduct:
+  domain: domain:marketing
+  tags: []
+  id: domain:marketing.Marketing-Invoice-1.1
+  displayName: Invoice
+  informationSLA: Info
+  name: Marketing-Invoice-1
+  fullyQualifiedName: InvoiceDataProduct
+  billing: {}
+  version: 1.0.0
+  email: contact@example.com
+  type: dataproduct
+  maturity: Tactical
+  owner: group:bigdata
+  description: Dataproduct invoice
+  environment: dev
+component:
+  domain: domain:marketing
+  name: Marketing-Invoice-S3-Ingestion-Data-1
+  semanticLinking: {}
+  owner: group:bigdata
+  displayName: Invoice S3 Input
+  consumerPolicy: Effectivly consumption of the data
+  useCaseTemplateId: template-id-1
+  description: Marketing Invoice S3 Ingestion Data
+  endpoint: endpoint
+  creationDate: null
+  allow:
+    - group:test
+  infrastructureTemplateId: cdp-aws-s3
+  securityPolicy: Sensible information
+  billingPolicy: Billing
+  version: 1.0.2
+  sampleData: {}
+  dependsOn: []
+  slo: {}
+  timeliness: {}
+  type: outputport
+  resourceType: raw
+  tags: []
+  intervalOfChange: {}
+  startDate: null
+  platform: CDP_AWS
+  processDescription: Underlying process
+  fullyQualifiedName: Marketing Invoice S3 Ingestion Data
+  id: domain:marketing.Marketing-Invoice-S3-Ingestion-Data-1.1
+  technology: CDP_S3
+  specific:
+    tenant_id: eee7e750-299f-468f-a6c3-9f28923f6133
+    subscription_id: 4f336e36-034a-47f0-bbcc-e543d3b2b6a8
+    resource_group_name: test-rgn
+    storage_account:
+      name: storagenamefortest100
+      region: northeurope
+    container:
+      name: test-container
+      access_level: None
+      directories: ['folder1']
