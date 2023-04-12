@@ -12,8 +12,6 @@ ThisBuild / versionScheme := Some("semver-spec")
 
 ThisBuild / parallelExecution := false
 
-Compile / mainClass := Some("it.agilelab.provisioners.terraform.Main")
-
 lazy val framework = (project in file("framework"))
   .settings(
     name := "spin-framework",
@@ -32,8 +30,10 @@ lazy val spmock = (project in file("spmock"))
 lazy val terraform = (project in file("terraform"))
   .settings(
     name := "terraform-provisioner",
-    libraryDependencies ++= Dependencies.testDependencies
+    libraryDependencies ++= Dependencies.testDependencies,
+    Compile / mainClass := Some("it.agilelab.provisioners.Main")
   )
+  .enablePlugins(JavaAppPackaging)
   .dependsOn(framework)
 
 lazy val root = (project in file("."))

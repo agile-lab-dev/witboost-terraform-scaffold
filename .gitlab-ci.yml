@@ -1,13 +1,82 @@
-# You can override the included template(s) by including variable overrides
-# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
-# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
-# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
-# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
-# Note that environment variables can be set in several places
-# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
 stages:
-- test
-sast:
-  stage: test
+  - checkFormatting
+  - test
+  - build
+  - publish
+
+# Generic SBT job
+.sbtBase:
+  image: sbtscala/scala-sbt:eclipse-temurin-jammy-11.0.17_8_1.8.2_2.13.10
+  variables:
+    # sets cache dirs
+    SBT_OPTS: >-
+      -Dsbt.global.base=sbt-cache/sbtboot
+      -Dsbt.boot.directory=sbt-cache/boot
+      -Dsbt.coursier.home=sbt-cache/coursier
+      -Dsbt.ci=true
+      -Dsbt.color=always
+  cache:
+    key: "$CI_COMMIT_REF_SLUG-sbt"
+    paths:
+      - sbt-cache/
+      - project/target/
+      - project/project/
+
+# sast jobs
 include:
-- template: Security/SAST.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+
+checkFormatting:
+  stage: checkFormatting
+  extends: .sbtBase
+  needs: []
+  script:
+    - 'sbt scalafmtSbtCheck scalafmtCheck'
+
+test:
+  stage: test
+  extends: .sbtBase
+  needs: []
+  before_script:
+    - wget https://releases.hashicorp.com/terraform/1.4.4/terraform_1.4.4_linux_amd64.zip
+    - apt-get update
+    - apt-get install unzip -y
+    - unzip terraform_1.4.4_linux_amd64.zip -d /usr/local/bin/
+    - chmod +x /usr/local/bin/terraform
+  script:
+    - 'sbt clean coverage test coverageAggregate'
+  coverage: '/Statement coverage[A-Za-z\.*]\s*:\s*([^%]+)/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: 'target/scala-2.13/coverage-report/cobertura.xml'
+
+universal:
+  stage: build
+  extends: .sbtBase
+  script:
+    - 'sbt stage'
+  artifacts:
+    name: "$CI_COMMIT_BRANCH"
+    paths:
+      - terraform/target/universal/stage/*
+
+jar:
+  stage: publish
+  extends: .sbtBase
+  needs: ["checkFormatting","test"]
+  script:
+    - 'sbt publish'
+
+docker:
+  stage: publish
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
