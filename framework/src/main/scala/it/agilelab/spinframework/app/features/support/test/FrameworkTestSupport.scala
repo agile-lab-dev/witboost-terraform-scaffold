@@ -1,13 +1,6 @@
 package it.agilelab.spinframework.app.features.support.test
 
 import it.agilelab.spinframework.app.features.compiler._
-import it.agilelab.spinframework.app.features.compiler.{
-  ComponentDescriptor,
-  DescriptorErrorType,
-  ParserFactory,
-  ValidationResult,
-  YamlDescriptor
-}
 
 trait FrameworkTestSupport {
   def descriptorFrom(yamlDescriptor: String): ComponentDescriptor = {

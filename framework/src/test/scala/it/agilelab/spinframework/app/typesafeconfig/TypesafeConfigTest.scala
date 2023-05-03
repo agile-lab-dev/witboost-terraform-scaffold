@@ -1,11 +1,10 @@
 package it.agilelab.spinframework.app.typesafeconfig
 
 import com.typesafe.config.Config
+import it.agilelab.spinframework.app.config.Configuration._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
-import it.agilelab.spinframework.app.config.Configuration._
-import it.agilelab.spinframework.app.api.server.HttpServerDefaults
 
 /** This suite executes test based on a configuration obtained by the merge
   * (automatically executed by Typesafe) of reference.conf and
@@ -24,10 +23,10 @@ class TypesafeConfigTest extends AnyFlatSpec with should.Matchers with BeforeAnd
 
   it should "have coherent values as interface and port" in {
     val port: Int = provisionerConfig.getInt(networking_httpServer_port)
-    port shouldBe HttpServerDefaults.defaultPort
+    port shouldBe 8080
 
     val interface: String = provisionerConfig.getString(networking_httpServer_interface)
-    interface shouldBe HttpServerDefaults.defaultInterface
+    interface shouldBe "0.0.0.0"
   }
 
   it should "have the terraform configuration" in {

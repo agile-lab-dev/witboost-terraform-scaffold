@@ -1,6 +1,5 @@
 package it.agilelab.spinframework.app.features.provision
 
-import it.agilelab.spinframework.app.features.compiler._
 import it.agilelab.spinframework.app.features.compiler.{ Compile, CompileResult, YamlDescriptor }
 
 class ProvisionService(compile: Compile, cloudProvider: CloudProvider) extends Provision {

@@ -5,7 +5,7 @@ ThisBuild / dynverSeparator := "-"
 
 ThisBuild / organization := "it.agilelab"
 ThisBuild / scalaVersion := "2.13.8"
-ThisBuild / scalacOptions := Seq("-unchecked", "-deprecation")
+ThisBuild / scalacOptions := Seq("-unchecked", "-deprecation", "-Ywarn-unused")
 
 // https://www.scala-sbt.org/1.x/docs/Publishing.html#Version+scheme
 ThisBuild / versionScheme := Some("semver-spec")
@@ -16,8 +16,23 @@ lazy val framework = (project in file("framework"))
   .settings(
     name := "spin-framework",
     libraryDependencies ++= Dependencies.frameworkDependencies,
-    libraryDependencies ++= Dependencies.akkaDependencies,
-    libraryDependencies ++= Dependencies.testDependencies
+    libraryDependencies ++= Dependencies.testDependencies,
+    libraryDependencies ++= Dependencies.http4sDependencies,
+    libraryDependencies ++= Dependencies.circeDependencies
+  )
+  .settings(
+    Compile / guardrailTasks := GuardrailHelpers.createGuardrailTasks((Compile / sourceDirectory).value / "openapi") {
+      openApiFile =>
+        List(
+          ScalaServer(
+            openApiFile.file,
+            pkg = "it.agilelab.spinframework.app.api.generated",
+            framework = "http4s",
+            tracing = false
+          )
+        )
+    },
+    coverageExcludedPackages := "it.agilelab.spinframework.app.api.generated.*"
   )
 
 lazy val spmock = (project in file("spmock"))

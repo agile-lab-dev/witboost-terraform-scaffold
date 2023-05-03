@@ -1,21 +1,24 @@
 package it.agilelab.spinframework.app
 
-import it.agilelab.spinframework.app.api.server.HttpServer
+import cats.effect.{ ExitCode, IO, IOApp }
+import com.comcast.ip4s.{ Host, Port }
+import it.agilelab.spinframework.app.config.Configuration.{
+  networking_httpServer_interface,
+  networking_httpServer_port,
+  provisionerConfig
+}
 import it.agilelab.spinframework.app.config.{
   AsynchronousSpecificProvisionerDependencies,
   FrameworkDependencies,
   SpecificProvisionerDependencies,
   SynchronousSpecificProvisionerDependencies
 }
-
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
-import scala.util.{ Failure, Success, Try }
+import org.http4s.ember.server.EmberServerBuilder
 
 /** This trait is meant to be extended by a specific provisioner implementation to inherit the main
   * and to implement the configuration to use.
   */
-trait SpecificProvisioner {
+trait SpecificProvisioner extends IOApp {
 
   private lazy val frameworkDependencies = new FrameworkDependencies(specificProvisionerDependencies)
 
@@ -26,24 +29,15 @@ trait SpecificProvisioner {
     *
     * @param args list of parameters
     */
-  final def main(args: Array[String]): Unit =
-    frameworkDependencies.httpServer.start(frameworkDependencies.routes, args)
-
-  /** Use this to stop the httpServer instance of a specific provisioner.
-    * The [[HttpServer]] is stopped
-    * using a method of the class [[akka.actor.ActorSystem]] that terminates the actor.
-    */
-  final def teardown(): Unit =
-    Try(Await.ready(frameworkDependencies.httpServer.stop(), 15.second)) match {
-      case Success(result)    =>
-        result.value match {
-          case Some(_) => println("server-stopped")
-          case None    => throw new RuntimeException("Error while stopping framework")
-        }
-      case Failure(exception) =>
-        println(exception.getMessage)
-        throw exception
-    }
+  def run(args: List[String]): IO[ExitCode] =
+    EmberServerBuilder
+      .default[IO]
+      .withPort(Port.fromInt(provisionerConfig.getInt(networking_httpServer_port)).get)
+      .withHost(Host.fromString(provisionerConfig.getString(networking_httpServer_interface)).get)
+      .withHttpApp(frameworkDependencies.httpApp)
+      .build
+      .use(_ => IO.never)
+      .as(ExitCode.Success)
 
   /** Override this method to specify the configuration of a specific provisioner.
     *

@@ -1,7 +1,7 @@
 package it.agilelab.provisionermock
 
 import it.agilelab.spinframework.app.SpecificProvisioner
-import it.agilelab.spinframework.app.api.dtos.{ ProvisionRequestDto, ProvisioningStatusDto }
+import it.agilelab.spinframework.app.api.generated.definitions.{ ProvisioningRequest, ProvisioningStatus }
 import it.agilelab.spinframework.app.features.support.test.HttpResponse
 
 class AsynchronousSpMockTest extends SpMockSuite {
@@ -11,17 +11,17 @@ class AsynchronousSpMockTest extends SpMockSuite {
   "The asynchronous spmock" should "accept a provision request and return its status from token" in {
     val provisionResponse: HttpResponse[String] = httpClient.post(
       endpoint = "/provision",
-      request = ProvisionRequestDto(descriptor = "container: somename"),
+      request = ProvisioningRequest(descriptor = "container: somename"),
       bodyClass = classOf[String]
     )
 
     provisionResponse.status shouldBe 202
     val componentToken = provisionResponse.body
 
-    val provisionStatusResponse = httpClient.get(s"/status/$componentToken", classOf[ProvisioningStatusDto])
+    val provisionStatusResponse = httpClient.get(s"/provision/$componentToken/status", classOf[ProvisioningStatus])
 
     provisionStatusResponse.status shouldBe 200
-    provisionStatusResponse.body.status shouldBe "COMPLETED"
+    provisionStatusResponse.body.status shouldBe ProvisioningStatus.Status.Completed
   }
 
 }

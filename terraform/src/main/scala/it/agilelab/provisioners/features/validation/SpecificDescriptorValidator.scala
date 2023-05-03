@@ -1,15 +1,11 @@
 package it.agilelab.provisioners.features.validation
 
-import it.agilelab.provisioners.features.descriptor.SpecificDescriptor
-import it.agilelab.spinframework.app.features.compiler.DescriptorErrorType.{ EmptyField, MalformedValue }
-import it.agilelab.spinframework.app.features.compiler.Validation.{ IsValid, NonEmpty }
 import it.agilelab.spinframework.app.features.compiler._
 
 class SpecificDescriptorValidator() extends DescriptorValidator {
 
-  override def validate(componentDescriptor: ComponentDescriptor): ValidationResult = {
-
-    val desc = SpecificDescriptor(componentDescriptor)
+  override def validate(componentDescriptor: ComponentDescriptor): ValidationResult =
+    //val desc = SpecificDescriptor(componentDescriptor)
 
     // TODO: dynamic fields inside specific section are not exposed
     // desc.specific
@@ -30,5 +26,4 @@ class SpecificDescriptorValidator() extends DescriptorValidator {
 
     ValidationResult.create
 
-  }
 }

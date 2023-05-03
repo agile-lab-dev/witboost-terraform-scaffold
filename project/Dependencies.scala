@@ -1,9 +1,6 @@
 import sbt._
 trait Dependencies {
 
-  lazy val AkkaVersion     = "2.6.19"
-  lazy val AkkaHttpVersion = "10.2.9"
-
   lazy val testDependencies: Seq[ModuleID] = Seq(
     "org.scalactic"       %% "scalactic" % "3.2.12",
     "org.scalatest"       %% "scalatest" % "3.2.12" % Test,
@@ -12,21 +9,29 @@ trait Dependencies {
   )
 
   lazy val frameworkDependencies: Seq[ModuleID] = Seq(
-    "io.circe"            %% "circe-yaml" % "0.14.1",
-    "com.typesafe"         % "config"     % "1.2.1",
-    "com.lihaoyi"         %% "requests"   % "0.7.1",
-    "com.google.code.gson" % "gson"       % "2.9.0"
+    "io.circe"            %% "circe-yaml"      % "0.14.2",
+    "com.typesafe"         % "config"          % "1.2.1",
+    "com.lihaoyi"         %% "requests"        % "0.7.1",
+    "com.google.code.gson" % "gson"            % "2.9.0",
+    "org.slf4j"            % "slf4j-api"       % "2.0.7",
+    "ch.qos.logback"       % "logback-core"    % "1.4.6",
+    "ch.qos.logback"       % "logback-classic" % "1.4.6"
   )
 
-  lazy val akkaDependencies: Seq[ModuleID] =
-    Seq(
-      "com.typesafe.akka" %% "akka-actor-typed"     % AkkaVersion,
-      "com.typesafe.akka" %% "akka-stream"          % AkkaVersion,
-      "com.typesafe.akka" %% "akka-http"            % AkkaHttpVersion,
-      "com.typesafe.akka" %% "akka-stream-testkit"  % AkkaVersion,
-      "com.typesafe.akka" %% "akka-http-testkit"    % AkkaHttpVersion,
-      "com.typesafe.akka" %% "akka-http-spray-json" % AkkaHttpVersion
-    )
+  private val http4sVersion                  = "0.23.18"
+  lazy val http4sDependencies: Seq[ModuleID] = Seq(
+    "org.http4s" %% "http4s-ember-client",
+    "org.http4s" %% "http4s-ember-server",
+    "org.http4s" %% "http4s-dsl",
+    "org.http4s" %% "http4s-circe"
+  ).map(_ % http4sVersion)
+
+  private val circeVersion                   = "0.14.5"
+  lazy val circeDependencies: Seq[ModuleID]  = Seq(
+    "io.circe" %% "circe-core",
+    "io.circe" %% "circe-generic",
+    "io.circe" %% "circe-parser"
+  ).map(_ % circeVersion)
 
 }
 

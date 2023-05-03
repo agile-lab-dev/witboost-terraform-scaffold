@@ -1,7 +1,7 @@
 package it.agilelab.provisionermock
 
 import it.agilelab.spinframework.app.SpecificProvisioner
-import it.agilelab.spinframework.app.config.{ AsynchronousSpecificProvisionerDependencies, Configuration }
+import it.agilelab.spinframework.app.config.AsynchronousSpecificProvisionerDependencies
 import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, DescriptorValidator, Validation }
 import it.agilelab.spinframework.app.features.provision.{
   CloudProvider,

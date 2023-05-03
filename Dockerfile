@@ -12,8 +12,6 @@ RUN addgroup -g $GROUP_ID $GROUP_NAME && \
 
 RUN apk add --no-cache bash
 
-COPY --chown=${USER_NAME}:${GROUP_NAME} terraform/target/universal/stage /service
-
 WORKDIR /tmp
 RUN wget https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip && \
     unzip terraform_${TF_VERSION}_linux_amd64.zip -d /usr/local/bin/ && \
@@ -22,6 +20,8 @@ RUN wget https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_V
 
 WORKDIR /service
 
+COPY --chown=${USER_NAME}:${GROUP_NAME} terraform/target/universal/stage /service
+
 USER ${USER_NAME}
 
-ENTRYPOINT ["/service/bin/terraform-provisioner", "-Dconfig.file=/config/application.conf"]
+ENTRYPOINT ["/service/bin/terraform-provisioner", "-Dlogback.configurationFile=/config/logback.xml", "-Dconfig.file=/config/application.conf"]

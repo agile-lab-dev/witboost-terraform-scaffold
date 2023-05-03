@@ -1,7 +1,6 @@
 package it.agilelab.spinframework.app.features.status
 
 import it.agilelab.spinframework.app.features.provision.{ ComponentToken, ProvisioningStatus }
-import it.agilelab.spinframework.app.features.provision.{ ComponentToken, ProvisioningStatus }
 
 /** This trait represents the provisioning status
   * of the request which is identified by an input token.

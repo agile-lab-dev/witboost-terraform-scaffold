@@ -1,15 +1,19 @@
 package it.agilelab.spinframework.app.features.support.test
 
-import com.google.gson.Gson
+import com.google.gson.{ GsonBuilder, JsonDeserializationContext, JsonDeserializer, JsonElement }
+import it.agilelab.spinframework.app.api.generated.definitions.ProvisioningStatus.{ Status => PS }
 import requests.Response
 
-class LocalHttpClient(val port: Int) {
+import java.lang.reflect.Type
+
+class LocalHttpClient(val port: Int, val pref: Option[String] = None) {
   // WARNING: interface MUST BE "localhost", otherwise tests on Jenkins will break!
-  private val interface = "localhost"
-  private val baseUrl   = s"http://$interface:$port"
-  private val version   = "1.0.0"
-  private val prefix    = s"/datamesh.specificprovisioner/$version"
-  private val gson      = new Gson()
+  private val interface   = "localhost"
+  private val baseUrl     = s"http://$interface:$port"
+  private val prefix      = pref.getOrElse(s"/datamesh.specificprovisioner")
+  private val gsonBuilder = new GsonBuilder()
+  gsonBuilder.registerTypeAdapter(classOf[PS], new StatusDeserializer)
+  private val gson        = gsonBuilder.create
 
   def post[T](endpoint: String, request: AnyRef, bodyClass: Class[T]): HttpResponse[T] = {
     val completeUrl = url(endpoint)
@@ -41,4 +45,9 @@ class LocalHttpClient(val port: Int) {
 
   private def applicationJson: Map[String, String] = Map("Content-Type" -> "application/json")
 
+}
+
+class StatusDeserializer extends JsonDeserializer[PS] {
+  override def deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): PS =
+    PS.from(json.getAsString).get
 }
