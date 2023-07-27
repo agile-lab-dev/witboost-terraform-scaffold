@@ -136,7 +136,6 @@ repositories
 *metals.sbt
 .vscode/
 azure-credentials.txt
-build.properties
 
 .terraform
 terraform.tfstate

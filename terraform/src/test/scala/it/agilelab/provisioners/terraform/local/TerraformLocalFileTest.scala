@@ -1,5 +1,6 @@
 package it.agilelab.provisioners.terraform.local
 
+import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.logOnConsole
 import it.agilelab.spinframework.app.features.support.test.FrameworkTestSupport
 import it.agilelab.provisioners.terraform.{
@@ -39,23 +40,27 @@ class TerraformLocalFileTest extends AnyFlatSpec with TerraformLocalTestBase wit
             content: "De gustibus non disputandum est"        
     """)
 
-  private val variables: TerraformVariables = TerraformVariablesFromDescriptor.variables(
-    "file_name"    -> descriptor
-      .sub("specific")
-      .sub("file")
-      .field("name"), // fills the file_name terraform variable
-    "file_content" -> descriptor
-      .sub("specific")
-      .sub("file")
-      .field("content") // fills the file_content terraform variable
+  val variableMappings = Some(
+    Map(
+      "file_name"    -> "$.specific.file.name",
+      "file_content" -> "$.specific.file.content"
+    )
   )
-  private val terraform                     = Terraform()
+
+  private val terraform = Terraform()
     .outputInPlainText()
     .withLogger(logOnConsole)
     .onDirectory(folder("/local-file"))
 
+  private val tfProvider = new TfProvider(terraform)
+
   "Terraform" should "create a local file" in {
     shouldNotExist(file("testfile.txt"))
+
+    val variables = tfProvider.variablesFrom(descriptor, variableMappings) match {
+      case Right(r) => r
+      case Left(l)  => fail(l.mkString("\n"))
+    }
 
     val initResult = terraform.doInit()
     shouldBeSuccess(initResult, "Terraform has been successfully initialized!")

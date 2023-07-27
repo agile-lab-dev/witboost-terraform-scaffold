@@ -9,13 +9,15 @@ trait Dependencies {
   )
 
   lazy val frameworkDependencies: Seq[ModuleID] = Seq(
-    "io.circe"            %% "circe-yaml"      % "0.14.2",
-    "com.typesafe"         % "config"          % "1.2.1",
-    "com.lihaoyi"         %% "requests"        % "0.7.1",
-    "com.google.code.gson" % "gson"            % "2.9.0",
-    "org.slf4j"            % "slf4j-api"       % "2.0.7",
-    "ch.qos.logback"       % "logback-core"    % "1.4.6",
-    "ch.qos.logback"       % "logback-classic" % "1.4.6"
+    "io.circe"                  %% "circe-yaml"       % "0.14.2",
+    "com.typesafe"               % "config"           % "1.2.1",
+    "com.lihaoyi"               %% "requests"         % "0.7.1",
+    "com.google.code.gson"       % "gson"             % "2.9.0",
+    "org.slf4j"                  % "slf4j-api"        % "2.0.7",
+    "ch.qos.logback"             % "logback-core"     % "1.4.6",
+    "ch.qos.logback"             % "logback-classic"  % "1.4.6",
+    "com.jayway.jsonpath"        % "json-path"        % "2.8.0",
+    "com.fasterxml.jackson.core" % "jackson-databind" % "2.15.2"
   )
 
   private val http4sVersion                  = "0.23.18"

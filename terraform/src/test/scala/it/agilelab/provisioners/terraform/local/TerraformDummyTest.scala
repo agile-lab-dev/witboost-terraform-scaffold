@@ -1,6 +1,7 @@
 package it.agilelab.provisioners.terraform.local
 
 import it.agilelab.provisioners.TestConfig
+import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.logOnConsole
 import it.agilelab.spinframework.app.config.{ ConfigurationModel => CM }
 import it.agilelab.spinframework.app.features.support.test.FrameworkTestSupport
@@ -22,13 +23,21 @@ import org.scalatest.flatspec.AnyFlatSpec
   */
 class TerraformDummyTest extends AnyFlatSpec with TerraformLocalTestBase with FrameworkTestSupport {
 
-  private val terraform_repositoryPath      = TestConfig
+  private val terraform_repositoryPath = TestConfig
     .load("dummy-module-config.conf")
     .getString(CM.terraform_repositoryPath)
-  private val variables: TerraformVariables = new TerraformVariables(
+
+  private val descriptor = descriptorFrom("""
+       specific:
+          account: xys-12345
+          isNumeric: false
+          length: 6
+    """)
+
+  private val variableMappings = Some(
     Map(
-      "numeric" -> "false",
-      "length"  -> "6"
+      "numeric" -> "$.specific.isNumeric",
+      "length"  -> "$.specific.length"
     )
   )
 
@@ -37,7 +46,14 @@ class TerraformDummyTest extends AnyFlatSpec with TerraformLocalTestBase with Fr
     .withLogger(logOnConsole)
     .onDirectory(terraform_repositoryPath)
 
+  val tfProvider = new TfProvider(terraform)
+
   "Terraform" should "generate a random string" in {
+
+    val variables = tfProvider.variablesFrom(descriptor, variableMappings) match {
+      case Right(r) => r
+      case Left(l)  => fail(l.mkString("\n"))
+    }
 
     val initResult = terraform.doInit()
     shouldBeSuccess(initResult, "Terraform has been successfully initialized!")
