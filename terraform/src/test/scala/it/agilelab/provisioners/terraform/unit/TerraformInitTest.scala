@@ -8,7 +8,8 @@ import org.scalatest.matchers.should
 class TerraformInitTest extends AnyFlatSpec with should.Matchers {
 
   "Terraform" should "perform init" in {
-    val mockProcessor = new MockProcessor(0, "output")
+    val outputString  = "Terraform has been successfully initialized!"
+    val mockProcessor = new MockProcessor(0, outputString)
 
     val terraform = Terraform()
       .processor(mockProcessor)
@@ -17,7 +18,7 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
     val result: TerraformResult = terraform.doInit()
 
     result.isSuccess shouldBe true
-    result.buildOutputString shouldBe "output"
+    result.buildOutputString shouldBe outputString
     mockProcessor.command should include("terraform -chdir=folder init")
   }
 
@@ -34,8 +35,23 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
     result.buildOutputString shouldBe "error"
   }
 
+  "Terraform" should "perform init and report an error while using -json flag" in {
+    val mockProcessor = new MockProcessor(1)
+
+    val terraform = Terraform()
+      .processor(mockProcessor)
+      .outputInJson()
+      .onDirectory("folder")
+
+    val result: TerraformResult = terraform.doInit()
+
+    result.isSuccess shouldBe false
+    result.errorMessages.size should be > 0
+  }
+
   "Terraform" should "perform init with no -json (not available option for this command)" in {
-    val mockProcessor = new MockProcessor(0, "output")
+    val outputString  = "Terraform has been successfully initialized!"
+    val mockProcessor = new MockProcessor(0, outputString)
 
     val terraform = Terraform()
       .processor(mockProcessor)
@@ -61,7 +77,8 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
   }
 
   "Terraform" should "perform init and log output" in {
-    val mockProcessor = new MockProcessor(0, "some output string")
+    val outputString  = "Terraform has been successfully initialized!"
+    val mockProcessor = new MockProcessor(0, outputString)
     val mockLogger    = new MockLogger
 
     val terraform = Terraform()
@@ -71,11 +88,12 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
 
     terraform.doInit()
 
-    mockLogger.lastLine shouldBe "some output string"
+    mockLogger.lastLine shouldBe outputString
   }
 
-  "Terraform" should "perform init and log no ouptut" in {
-    val mockProcessor = new MockProcessor(0, "some output string")
+  "Terraform" should "perform init and log no output" in {
+    val outputString  = "Terraform has been successfully initialized!"
+    val mockProcessor = new MockProcessor(0, outputString)
     val mockLogger    = new MockLogger
 
     val terraform = Terraform()

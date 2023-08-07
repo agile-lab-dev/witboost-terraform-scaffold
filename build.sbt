@@ -5,7 +5,7 @@ ThisBuild / dynverSeparator := "-"
 
 ThisBuild / organization := "it.agilelab"
 ThisBuild / scalaVersion := "2.13.8"
-ThisBuild / scalacOptions := Seq("-unchecked", "-deprecation", "-Ywarn-unused")
+ThisBuild / scalacOptions := Seq("-unchecked", "-deprecation", "-Ywarn-unused", "-Ymacro-annotations")
 
 // https://www.scala-sbt.org/1.x/docs/Publishing.html#Version+scheme
 ThisBuild / versionScheme := Some("semver-spec")

@@ -32,4 +32,10 @@ trait TerraformLocalTestBase extends should.Matchers {
     // When an error occurs, Terraform returns an output with an "Error: <some short description>"
     output should not include "Error:"
   }
+
+  def shouldBeSuccess(result: TerraformResult): Assertion = {
+    result.isSuccess shouldBe true
+    val output = result.errorMessages
+    output shouldBe empty
+  }
 }

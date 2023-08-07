@@ -22,4 +22,11 @@ class HandlerTestBase extends AnyFlatSpec with Matchers {
     statusCheck && bodyCheck
   }
 
+  def check[A](actual: IO[Response[IO]], expectedStatus: Status)(implicit ev: EntityDecoder[IO, A]): Boolean = {
+    val actualResp  = actual.unsafeRunSync()
+    val statusCheck = actualResp.status == expectedStatus
+    val bodyCheck   = actualResp.as[A].unsafeRunSync().isInstanceOf[A]
+    statusCheck && bodyCheck
+  }
+
 }

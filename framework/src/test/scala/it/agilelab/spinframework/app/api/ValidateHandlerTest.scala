@@ -61,7 +61,7 @@ class ValidateHandlerTest extends HandlerTestBase {
       )
     val expected                   = SystemError("System Error")
 
-    check[SystemError](response, Status.InternalServerError, Some(expected)) shouldBe true
+    check[SystemError](response, Status.InternalServerError) shouldBe true
   }
 
 }

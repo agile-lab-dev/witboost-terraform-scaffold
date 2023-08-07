@@ -23,7 +23,7 @@ class TfProvider(terraform: TerraformCommands) extends CloudProvider {
 
   override def provision(descriptor: ComponentDescriptor): ProvisionResult = {
     if (!terraformInitResult.isSuccess)
-      return ProvisionResult.failure(Seq(ErrorMessage(terraformInitResult.buildOutputString)))
+      return ProvisionResult.failure(terraformInitResult.errorMessages.map(ErrorMessage))
 
     variablesFrom(descriptor) match {
       case Left(l)     => ProvisionResult.failure(l)
@@ -32,7 +32,7 @@ class TfProvider(terraform: TerraformCommands) extends CloudProvider {
         if (applyResult.isSuccess)
           ProvisionResult.completed()
         else
-          ProvisionResult.failure(Seq(ErrorMessage(applyResult.buildOutputString)))
+          ProvisionResult.failure(applyResult.errorMessages.map(ErrorMessage))
 
     }
   }
@@ -45,7 +45,7 @@ class TfProvider(terraform: TerraformCommands) extends CloudProvider {
         if (result.isSuccess)
           ProvisionResult.completed()
         else
-          ProvisionResult.failure(Seq(ErrorMessage(result.buildOutputString)))
+          ProvisionResult.failure(result.errorMessages.map(ErrorMessage))
     }
 
   def variablesFrom(
@@ -79,9 +79,9 @@ class TfProvider(terraform: TerraformCommands) extends CloudProvider {
 
     if (lefts.isEmpty)
       Right(new TerraformVariables(right.toMap))
-    else
+    else {
       Left(lefts.map(err => ErrorMessage(err)).toSeq)
-
+    }
   }
 
   private def getValue(jsonString: String, jsonPath: String): Either[String, String] = {

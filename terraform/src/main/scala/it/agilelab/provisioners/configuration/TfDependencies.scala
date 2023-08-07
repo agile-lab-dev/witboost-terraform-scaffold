@@ -16,7 +16,7 @@ class TfDependencies extends SynchronousSpecificProvisionerDependencies {
 
   private val terraform = Terraform()
     .withLogger(TerraformLogger.logOnConsole)
-    .outputInPlainText()
+    .outputInJson()
     .onDirectory(provisionerConfig.getString(terraform_repositoryPath))
 
   private val tfProvider: TfProvider = new TfProvider(terraform)

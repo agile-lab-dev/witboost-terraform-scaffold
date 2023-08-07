@@ -14,6 +14,12 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
 
   final private val logger: Logger = LoggerFactory.getLogger(getClass.getName)
 
+  sealed trait OperationType
+  case object Provision   extends OperationType
+  case object Unprovision extends OperationType
+  case object Validate    extends OperationType
+  case object Status      extends OperationType
+
   override def provision(
     respond: Resource.ProvisionResponse.type
   )(body: ProvisioningRequest): IO[Resource.ProvisionResponse] = IO.blocking {
@@ -25,11 +31,28 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
       case Failed    =>
         Resource.ProvisionResponse.BadRequest(ValidationErrorMapper.from(result))
     }
-  }.handleError((f: Throwable) => Resource.ProvisionResponse.InternalServerError(systemError(f)))
+  }.handleError((f: Throwable) => Resource.ProvisionResponse.InternalServerError(systemError(f, Provision)))
 
-  private def systemError(f: Throwable): SystemError = {
+  private def systemError(f: Throwable, operationType: OperationType): SystemError = {
     logger.error("System Error", f)
-    SystemError(Option(f.getMessage).getOrElse("System Error"))
+    operationType match {
+      case Provision   =>
+        SystemError(
+          s"An unexpected error occurred while processing the provision request. Please try again later. If the issue still persists, contact the platform team for assistance! Detailed error: ${f.getMessage}"
+        )
+      case Unprovision =>
+        SystemError(
+          s"An unexpected error occurred while processing the unprovision request. Please try again later. If the issue still persists, contact the platform team for assistance! Detailed error: ${f.getMessage}"
+        )
+      case Validate    =>
+        SystemError(
+          s"An unexpected error occurred while validating the request. Please try again later. If the issue still persists, contact the platform team for assistance! Detailed error: ${f.getMessage}"
+        )
+      case Status      =>
+        SystemError(
+          s"An unexpected error occurred while retrieving the status. Please try again later. If the issue still persists, contact the platform team for assistance!  Detailed error: ${f.getMessage}"
+        )
+    }
   }
 
   override def unprovision(respond: Resource.UnprovisionResponse.type)(
@@ -43,7 +66,7 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
       case Failed    =>
         Resource.UnprovisionResponse.BadRequest(ValidationErrorMapper.from(result))
     }
-  }.handleError((f: Throwable) => Resource.UnprovisionResponse.InternalServerError(systemError(f)))
+  }.handleError((f: Throwable) => Resource.UnprovisionResponse.InternalServerError(systemError(f, Unprovision)))
 
   override def validate(respond: Resource.ValidateResponse.type)(
     body: ProvisioningRequest
@@ -51,13 +74,13 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
     val compileResult = compile.doCompile(YamlDescriptor(body.descriptor))
     val errors        = Option(ValidationErrorMapper.from(compileResult)).filter(_.errors.nonEmpty)
     Resource.ValidateResponse.Ok(ValidationResult(compileResult.isSuccess, errors))
-  }.handleError((f: Throwable) => Resource.ValidateResponse.InternalServerError(systemError(f)))
+  }.handleError((f: Throwable) => Resource.ValidateResponse.InternalServerError(systemError(f, Validate)))
 
   override def getStatus(respond: Resource.GetStatusResponse.type)(token: String): IO[Resource.GetStatusResponse] =
     IO.blocking {
       val status: ProvisioningStatus = checkStatus.statusOf(ComponentToken(token))
       val statusDto                  = ProvisioningStatusMapper.from(status)
       Resource.GetStatusResponse.Ok(statusDto)
-    }.handleError((f: Throwable) => Resource.GetStatusResponse.InternalServerError(systemError(f)))
+    }.handleError((f: Throwable) => Resource.GetStatusResponse.InternalServerError(systemError(f, Status)))
 
 }

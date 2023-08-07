@@ -5,6 +5,7 @@ import it.agilelab.provisioners.terraform.TerraformLogger.logOnConsole
 import it.agilelab.spinframework.app.config.ConfigurationModel
 import it.agilelab.spinframework.app.features.support.test.FrameworkTestSupport
 import it.agilelab.provisioners.terraform.{ Terraform, TerraformResult, TerraformVariables }
+import org.scalatest.Assertion
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.time.{ Millis, Span }
@@ -43,6 +44,11 @@ class TerraformTimeoutTest
     .withLogger(logOnConsole)
     .onDirectory(terraform_repositoryPath)
 
+  private val terraformJson = Terraform()
+    .outputInJson()
+    .withLogger(logOnConsole)
+    .onDirectory(terraform_repositoryPath)
+
   private val variables: TerraformVariables = new TerraformVariables(
     Map(
       "numeric" -> "false"
@@ -62,6 +68,11 @@ class TerraformTimeoutTest
     for (outputString <- outputStrings) yield terraformResult.buildOutputString should include(outputString)
   }
 
+  private def shouldFailJson(terraformResult: TerraformResult): Assertion = {
+    terraformResult.isSuccess shouldBe false
+    terraformResult.errorMessages.size should be > 0
+  }
+
   // Expected error outputs of Terraform plan, apply and destroy operations
   // when any variable is missing.
   private val NO_VALUE_SET: String = "No value for required variable"
@@ -75,6 +86,14 @@ class TerraformTimeoutTest
     shouldBeSuccess(validateResult, "Success!", "The configuration is valid.")
   }
 
+  "Terraform" should "perform init and validate correctly using -json option" in {
+    val initResultJson = terraformJson.doInit()
+    shouldBeSuccess(initResultJson)
+
+    val validateResultJson: TerraformResult = terraformJson.doValidate()
+    shouldBeSuccess(validateResultJson)
+  }
+
   it should "not wait for user input during plan" in {
     val planResult = Await.result(
       Future {
@@ -84,6 +103,17 @@ class TerraformTimeoutTest
     )
 
     shouldFail(planResult, NO_VALUE_SET, LENGTH_ERROR)
+  }
+
+  it should "not wait for user input during plan using -json flag" in {
+    val planResultJson = Await.result(
+      Future {
+        terraformJson.doPlan(variables)
+      },
+      timeLimit
+    )
+
+    shouldFailJson(planResultJson)
   }
 
   it should "not wait for user input during apply" in {
@@ -97,6 +127,17 @@ class TerraformTimeoutTest
     shouldFail(applyResult, NO_VALUE_SET, LENGTH_ERROR)
   }
 
+  it should "not wait for user input during apply using -json flag" in {
+    val applyResult = Await.result(
+      Future {
+        terraformJson.doApply(variables)
+      },
+      timeLimit
+    )
+
+    shouldFailJson(applyResult)
+  }
+
   it should "not wait for user input during destroy" in {
     val destroyResult = Await.result(
       Future {
@@ -107,4 +148,16 @@ class TerraformTimeoutTest
 
     shouldFail(destroyResult, NO_VALUE_SET, LENGTH_ERROR)
   }
+
+  it should "not wait for user input during destroy using -json flag" in {
+    val destroyResult = Await.result(
+      Future {
+        terraformJson.doDestroy(variables)
+      },
+      timeLimit
+    )
+
+    shouldFailJson(destroyResult)
+  }
+
 }

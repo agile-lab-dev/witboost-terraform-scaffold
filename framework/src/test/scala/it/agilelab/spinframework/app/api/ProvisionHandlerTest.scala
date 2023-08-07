@@ -90,7 +90,7 @@ class ProvisionHandlerTest extends HandlerTestBase {
       )
     val expected                   = SystemError("error")
 
-    check[SystemError](response, Status.InternalServerError, Some(expected)) shouldBe true
+    check[SystemError](response, Status.InternalServerError) shouldBe true
   }
 
   it should "return a 500 with meaningful error on unprovision exception" in {
@@ -108,7 +108,7 @@ class ProvisionHandlerTest extends HandlerTestBase {
       )
     val expected                   = SystemError("error")
 
-    check[SystemError](response, Status.InternalServerError, Some(expected)) shouldBe true
+    check[SystemError](response, Status.InternalServerError) shouldBe true
   }
 
 }

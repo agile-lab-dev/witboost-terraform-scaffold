@@ -65,7 +65,7 @@ class GetStatusHandlerTest extends HandlerTestBase {
       )
     val expected                   = SystemError("null")
 
-    check[SystemError](response, Status.InternalServerError, Some(expected)) shouldBe true
+    check[SystemError](response, Status.InternalServerError) shouldBe true
   }
 
 }

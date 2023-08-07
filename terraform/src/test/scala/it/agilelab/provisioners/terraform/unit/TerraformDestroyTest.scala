@@ -9,7 +9,9 @@ import org.scalatest.matchers.should
 class TerraformDestroyTest extends AnyFlatSpec with should.Matchers {
 
   "Terraform" should "perform destroy" in {
-    val mockProcessor = new MockProcessor(0, "output")
+
+    val outputString  = "Destroy complete!"
+    val mockProcessor = new MockProcessor(0, outputString)
 
     val terraform = Terraform()
       .processor(mockProcessor)
@@ -18,12 +20,13 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers {
     val result: TerraformResult = terraform.doDestroy(noVariable())
 
     result.isSuccess shouldBe true
-    result.buildOutputString shouldBe "output"
+    result.buildOutputString shouldBe outputString
     mockProcessor.command should include("terraform -chdir=folder destroy")
   }
 
   "Terraform" should "perform destroy with variables" in {
-    val mockProcessor = new MockProcessor(0, "output")
+    val outputString  = "Destroy complete!"
+    val mockProcessor = new MockProcessor(0, outputString)
 
     val terraform = Terraform()
       .processor(mockProcessor)
@@ -42,20 +45,75 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers {
   }
 
   "Terraform" should "perform destroy and report an error" in {
-    val mockProcessor = new MockProcessor(1, "error")
+
+    val outputString  =
+      """
+        |{
+        |  "@level": "error",
+        |  "@message": "Error: Invalid reference",
+        |  "@module": "terraform.ui",
+        |  "@timestamp": "2023-07-27T15:50:26.629471+05:30",
+        |  "diagnostic": {
+        |    "severity": "error",
+        |    "summary": "Invalid reference",
+        |    "detail": "A reference to a resource type must be followed by at least one attribute access, specifying the resource name.",
+        |    "range": {
+        |      "filename": "main.tf",
+        |      "start": {
+        |        "line": 3,
+        |        "column": 22,
+        |        "byte": 89
+        |      },
+        |      "end": {
+        |        "line": 3,
+        |        "column": 25,
+        |        "byte": 92
+        |      }
+        |    },
+        |    "snippet": {
+        |      "context": "resource \"random_string\" \"random\"",
+        |      "code": "  special          = tru",
+        |      "start_line": 3,
+        |      "highlight_start_offset": 21,
+        |      "highlight_end_offset": 24,
+        |      "values": []
+        |    }
+        |  },
+        |  "type": "diagnostic"
+        |}
+        |""".stripMargin.replace("\n", "")
+    val mockProcessor = new MockProcessor(1, outputString)
 
     val terraform = Terraform()
       .processor(mockProcessor)
+      .outputInJson()
       .onDirectory("folder")
 
     val result: TerraformResult = terraform.doDestroy(noVariable())
 
     result.isSuccess shouldBe false
-    result.buildOutputString shouldBe "error"
+    result.errorMessages.size should be > 0
   }
 
   "Terraform" should "perform destroy with -json option" in {
-    val mockProcessor = new MockProcessor(0, "output")
+    val outputString  =
+      """
+        |{
+        |  "@level": "info",
+        |  "@message": "Destroy complete! Resources: 0 destroyed.",
+        |  "@module": "terraform.ui",
+        |  "@timestamp": "2023-07-27T15:56:01.386966+05:30",
+        |  "changes": {
+        |    "add": 0,
+        |    "change": 0,
+        |    "import": 0,
+        |    "remove": 0,
+        |    "operation": "destroy"
+        |  },
+        |  "type": "change_summary"
+        |}
+        |""".stripMargin.replace("\n", "")
+    val mockProcessor = new MockProcessor(0, outputString)
 
     val terraform = Terraform()
       .processor(mockProcessor)
@@ -68,7 +126,8 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers {
   }
 
   "Terraform" should "perform destroy with no -json option" in {
-    val mockProcessor = new MockProcessor(0, "output")
+    val outputString  = "Destroy complete!"
+    val mockProcessor = new MockProcessor(0, outputString)
 
     val terraform = Terraform()
       .processor(mockProcessor)
@@ -81,7 +140,8 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers {
   }
 
   "Terraform" should "perform destroy and log output" in {
-    val mockProcessor = new MockProcessor(0, "some output string")
+    val outputString  = "Destroy complete!"
+    val mockProcessor = new MockProcessor(0, outputString)
     val mockLogger    = new MockLogger
 
     val terraform = Terraform()
@@ -91,11 +151,12 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers {
 
     terraform.doDestroy(noVariable())
 
-    mockLogger.lastLine shouldBe "some output string"
+    mockLogger.lastLine shouldBe outputString
   }
 
-  "Terraform" should "perform destroy and log no ouptut" in {
-    val mockProcessor = new MockProcessor(0, "some output string")
+  "Terraform" should "perform destroy and log no output" in {
+    val outputString  = "Destroy complete!"
+    val mockProcessor = new MockProcessor(0, outputString)
     val mockLogger    = new MockLogger
 
     val terraform = Terraform()

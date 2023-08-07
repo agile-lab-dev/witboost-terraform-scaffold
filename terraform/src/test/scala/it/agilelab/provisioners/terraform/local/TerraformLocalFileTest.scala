@@ -2,13 +2,8 @@ package it.agilelab.provisioners.terraform.local
 
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.logOnConsole
+import it.agilelab.provisioners.terraform.{ Terraform, TerraformResult }
 import it.agilelab.spinframework.app.features.support.test.FrameworkTestSupport
-import it.agilelab.provisioners.terraform.{
-  Terraform,
-  TerraformResult,
-  TerraformVariables,
-  TerraformVariablesFromDescriptor
-}
 import org.scalatest.flatspec.AnyFlatSpec
 
 /** This test serves as a sample of both a complete terraform module and a Terraform façade invocation.
@@ -40,15 +35,19 @@ class TerraformLocalFileTest extends AnyFlatSpec with TerraformLocalTestBase wit
             content: "De gustibus non disputandum est"        
     """)
 
-  val variableMappings = Some(
+  val variableMappings: Option[Map[String, String]] = Some(
     Map(
       "file_name"    -> "$.specific.file.name",
       "file_content" -> "$.specific.file.content"
     )
   )
-
-  private val terraform = Terraform()
+  private val terraform                             = Terraform()
     .outputInPlainText()
+    .withLogger(logOnConsole)
+    .onDirectory(folder("/local-file"))
+
+  private val terraformJson = Terraform()
+    .outputInJson()
     .withLogger(logOnConsole)
     .onDirectory(folder("/local-file"))
 
@@ -77,6 +76,33 @@ class TerraformLocalFileTest extends AnyFlatSpec with TerraformLocalTestBase wit
 
     val destroyResult = terraform.doDestroy(variables)
     shouldBeSuccess(destroyResult, "Destroy complete! Resources: 1 destroyed")
+    shouldNotExist(file("testfile.txt"))
+  }
+
+  "Terraform" should "create a local file using -json flag" in {
+
+    val variables = tfProvider.variablesFrom(descriptor, variableMappings) match {
+      case Right(r) => r
+      case Left(l)  => fail(l.mkString("\n"))
+    }
+
+    shouldNotExist(file("testfile.txt"))
+
+    val initResultJson: TerraformResult = terraformJson.doInit()
+    shouldBeSuccess(initResultJson)
+
+    val validateResultJson: TerraformResult = terraformJson.doValidate()
+    shouldBeSuccess(validateResultJson)
+
+    val planResultJson: TerraformResult = terraformJson.doPlan(variables)
+    shouldBeSuccess(planResultJson)
+
+    val applyResultJson: TerraformResult = terraformJson.doApply(variables)
+    shouldBeSuccess(applyResultJson)
+    shouldExist(file("testfile.txt"), "De gustibus non disputandum est")
+
+    val destroyResultJson: TerraformResult = terraformJson.doDestroy(variables)
+    shouldBeSuccess(destroyResultJson)
     shouldNotExist(file("testfile.txt"))
   }
 
