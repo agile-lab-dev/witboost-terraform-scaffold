@@ -8,11 +8,11 @@ import it.agilelab.spinframework.app.config.SynchronousSpecificProvisionerDepend
 import it.agilelab.spinframework.app.features.compiler.DescriptorValidator
 import it.agilelab.spinframework.app.features.provision.CloudProvider
 
-import scala.reflect.io.File
+import java.nio.file.{ Files, Paths }
 
 class TfDependencies extends SynchronousSpecificProvisionerDependencies {
 
-  require(File(provisionerConfig.getString(terraform_repositoryPath)).exists)
+  require(Files.exists(Paths.get(provisionerConfig.getString(terraform_repositoryPath))))
 
   private val terraform = Terraform()
     .withLogger(TerraformLogger.logOnConsole)
