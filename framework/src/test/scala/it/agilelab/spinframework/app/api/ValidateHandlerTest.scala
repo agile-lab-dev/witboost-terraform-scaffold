@@ -3,6 +3,7 @@ package it.agilelab.spinframework.app.api
 import cats.effect.IO
 import it.agilelab.spinframework.app.api.generated.Resource
 import it.agilelab.spinframework.app.api.generated.definitions.{
+  DescriptorKind,
   ProvisioningRequest,
   SystemError,
   ValidationError,
@@ -25,8 +26,8 @@ class ValidateHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/validate")
-          .withEntity(ProvisioningRequest("a-yaml-descriptor"))
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/validate")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
     val expected                   = ValidationResult(valid = true)
 
@@ -41,8 +42,8 @@ class ValidateHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/validate")
-          .withEntity(ProvisioningRequest("a-yaml-descriptor"))
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/validate")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
     val expected                   = ValidationResult(valid = false, error = Some(ValidationError(errors.map(_.description).toVector)))
 
@@ -56,8 +57,8 @@ class ValidateHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/validate")
-          .withEntity(ProvisioningRequest("a-yaml-descriptor"))
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/validate")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
     val expected                   = SystemError("System Error")
 

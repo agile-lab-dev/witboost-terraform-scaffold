@@ -8,16 +8,16 @@ object ProvisioningStatusMapper {
 
   def from(result: ProvisionResult): ProvisioningStatus =
     result.provisioningStatus match {
-      case Completed => ProvisioningStatus(ProvisioningStatus.Status.Completed)
-      case Failed    => ProvisioningStatus(ProvisioningStatus.Status.Failed)
-      case Running   => ProvisioningStatus(ProvisioningStatus.Status.Running)
+      case Completed => ProvisioningStatus(ProvisioningStatus.Status.Completed, "")
+      case Failed    => ProvisioningStatus(ProvisioningStatus.Status.Failed, "")
+      case Running   => ProvisioningStatus(ProvisioningStatus.Status.Running, "")
     }
 
   def from(status: it.agilelab.spinframework.app.features.provision.ProvisioningStatus): ProvisioningStatus =
     status match {
-      case Completed => ProvisioningStatus(ProvisioningStatus.Status.Completed)
-      case Failed    => ProvisioningStatus(ProvisioningStatus.Status.Failed)
-      case Running   => ProvisioningStatus(ProvisioningStatus.Status.Running)
+      case Completed => ProvisioningStatus(ProvisioningStatus.Status.Completed, "")
+      case Failed    => ProvisioningStatus(ProvisioningStatus.Status.Failed, "")
+      case Running   => ProvisioningStatus(ProvisioningStatus.Status.Running, "")
     }
 
 }

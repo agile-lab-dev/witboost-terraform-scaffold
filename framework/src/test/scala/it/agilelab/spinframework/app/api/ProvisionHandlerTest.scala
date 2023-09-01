@@ -4,15 +4,10 @@ import cats.effect.IO
 import it.agilelab.spinframework.app.api.generated.Resource
 import it.agilelab.spinframework.app.api.helpers.HandlerTestBase
 import it.agilelab.spinframework.app.features.compiler.YamlDescriptor
-import it.agilelab.spinframework.app.features.provision.{ ComponentToken, Provision, ProvisionResult }
+import it.agilelab.spinframework.app.features.provision.{ComponentToken, Provision, ProvisionResult}
 import org.http4s.implicits.http4sLiteralsSyntax
-import org.http4s.{ Method, Request, Response, Status }
-import it.agilelab.spinframework.app.api.generated.definitions.{
-  ProvisioningRequest,
-  SystemError,
-  ValidationError,
-  ProvisioningStatus => PSDto
-}
+import org.http4s.{Method, Request, Response, Status}
+import it.agilelab.spinframework.app.api.generated.definitions.{DescriptorKind, ProvisioningRequest, SystemError, ValidationError, ProvisioningStatus => PSDto}
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s.circe.CirceEntityEncoder._
 import it.agilelab.spinframework.app.features.compiler.ErrorMessage
@@ -31,10 +26,10 @@ class ProvisionHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/provision")
-          .withEntity(ProvisioningRequest("a-yaml-descriptor"))
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/provision")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
-    val expected                   = new PSDto(PSDto.Status.Completed)
+    val expected                   = new PSDto(PSDto.Status.Completed, "")
 
     check[PSDto](response, Status.Ok, Some(expected)) shouldBe true
   }
@@ -49,8 +44,8 @@ class ProvisionHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/provision")
-          .withEntity(ProvisioningRequest("a-yaml-descriptor"))
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/provision")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
     val expected                   = "some-token"
 
@@ -67,8 +62,8 @@ class ProvisionHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/provision")
-          .withEntity(ProvisioningRequest("a-yaml-descriptor"))
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/provision")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
     val expected                   = ValidationError(errors.map(_.description).toVector)
 
@@ -85,8 +80,8 @@ class ProvisionHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/provision")
-          .withEntity(ProvisioningRequest("a-yaml-descriptor"))
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/provision")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
     val expected                   = SystemError("error")
 
@@ -103,8 +98,8 @@ class ProvisionHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/unprovision")
-          .withEntity(ProvisioningRequest("a-yaml-descriptor"))
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/unprovision")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
     val expected                   = SystemError("error")
 

@@ -1,7 +1,14 @@
 package it.agilelab.spinframework.app.api
 
 import cats.effect.IO
-import it.agilelab.spinframework.app.api.generated.definitions.{ ProvisioningRequest, SystemError, ValidationResult }
+import it.agilelab.spinframework.app.api.generated.definitions.{
+  ProvisioningRequest,
+  ReverseProvisioningRequest,
+  SystemError,
+  UpdateAclRequest,
+  ValidationRequest,
+  ValidationResult
+}
 import it.agilelab.spinframework.app.api.generated.{ Handler, Resource }
 import it.agilelab.spinframework.app.api.mapping.{ ProvisioningStatusMapper, ValidationErrorMapper }
 import it.agilelab.spinframework.app.features.compiler.{ Compile, YamlDescriptor }
@@ -83,4 +90,38 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
       Resource.GetStatusResponse.Ok(statusDto)
     }.handleError((f: Throwable) => Resource.GetStatusResponse.InternalServerError(systemError(f, Status)))
 
+  override def updateacl(
+    respond: Resource.UpdateaclResponse.type
+  )(body: UpdateAclRequest): IO[Resource.UpdateaclResponse] = IO {
+    Resource.UpdateaclResponse.InternalServerError(SystemError("The updateacl operation is not supported"))
+  }
+
+  override def asyncValidate(respond: Resource.AsyncValidateResponse.type)(
+    body: ValidationRequest
+  ): IO[Resource.AsyncValidateResponse] = IO {
+    Resource.AsyncValidateResponse.InternalServerError(SystemError("The asyncValidate operation is not supported"))
+  }
+
+  override def getValidationStatus(respond: Resource.GetValidationStatusResponse.type)(
+    token: String
+  ): IO[Resource.GetValidationStatusResponse]    = IO {
+    Resource.GetValidationStatusResponse.InternalServerError(
+      SystemError("The validationStatus operation is not supported")
+    )
+  }
+  override def runReverseProvisioning(respond: Resource.RunReverseProvisioningResponse.type)(
+    body: ReverseProvisioningRequest
+  ): IO[Resource.RunReverseProvisioningResponse] = IO {
+    Resource.RunReverseProvisioningResponse.InternalServerError(
+      SystemError("The reverseProvisioning operation is not supported")
+    )
+  }
+
+  override def getReverseProvisioningStatus(respond: Resource.GetReverseProvisioningStatusResponse.type)(
+    token: String
+  ): IO[Resource.GetReverseProvisioningStatusResponse] = IO {
+    Resource.GetReverseProvisioningStatusResponse.InternalServerError(
+      SystemError("The reverseProvisioningStatus operation is not supported")
+    )
+  }
 }

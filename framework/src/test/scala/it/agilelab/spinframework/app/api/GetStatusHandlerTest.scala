@@ -19,9 +19,9 @@ class GetStatusHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.GET, uri = uri"datamesh.specificprovisioner/provision/token/status")
+        Request(method = Method.GET, uri = uri"datamesh.specificprovisioner/v1/provision/token/status")
       )
-    val expected                   = new PSDto(PSDto.Status.Completed)
+    val expected                   = new PSDto(PSDto.Status.Completed, "")
 
     check[PSDto](response, Status.Ok, Some(expected)) shouldBe true
   }
@@ -33,9 +33,9 @@ class GetStatusHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.GET, uri = uri"datamesh.specificprovisioner/provision/token/status")
+        Request(method = Method.GET, uri = uri"datamesh.specificprovisioner/v1/provision/token/status")
       )
-    val expected                   = new PSDto(PSDto.Status.Failed)
+    val expected                   = new PSDto(PSDto.Status.Failed, "")
 
     check[PSDto](response, Status.Ok, Some(expected)) shouldBe true
   }
@@ -47,9 +47,9 @@ class GetStatusHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.GET, uri = uri"datamesh.specificprovisioner/provision/token/status")
+        Request(method = Method.GET, uri = uri"datamesh.specificprovisioner/v1/provision/token/status")
       )
-    val expected                   = new PSDto(PSDto.Status.Running)
+    val expected                   = new PSDto(PSDto.Status.Running, "")
 
     check[PSDto](response, Status.Ok, Some(expected)) shouldBe true
   }
@@ -61,7 +61,7 @@ class GetStatusHandlerTest extends HandlerTestBase {
       .routes(handler)
       .orNotFound
       .run(
-        Request(method = Method.GET, uri = uri"datamesh.specificprovisioner/provision/token/status")
+        Request(method = Method.GET, uri = uri"datamesh.specificprovisioner/v1/provision/token/status")
       )
     val expected                   = SystemError("null")
 

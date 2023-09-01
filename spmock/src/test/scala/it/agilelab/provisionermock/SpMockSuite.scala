@@ -6,6 +6,7 @@ import com.comcast.ip4s.{ Host, Port }
 import it.agilelab.provisionermock.config.SpMockConfiguration
 import it.agilelab.spinframework.app.SpecificProvisioner
 import it.agilelab.spinframework.app.api.generated.definitions.{
+  DescriptorKind,
   ProvisioningRequest,
   ProvisioningStatus,
   ValidationResult
@@ -66,8 +67,8 @@ trait SpMockSuite extends AnyFlatSpec with should.Matchers with BeforeAndAfterAl
 
     val validateResponse: ValidationResult = httpClient
       .post(
-        endpoint = "/validate",
-        request = ProvisioningRequest(descriptor),
+        endpoint = "/v1/validate",
+        request = ProvisioningRequest(descriptorKind = DescriptorKind.ComponentDescriptor, descriptor = descriptor),
         bodyClass = classOf[ValidationResult]
       )
       .body
@@ -78,8 +79,9 @@ trait SpMockSuite extends AnyFlatSpec with should.Matchers with BeforeAndAfterAl
 
   it should "accept an unprovision request" in {
     val provisioningStatusResponse = httpClient.post(
-      endpoint = "/unprovision",
-      request = ProvisioningRequest("container: somename"),
+      endpoint = "/v1/unprovision",
+      request =
+        ProvisioningRequest(descriptorKind = DescriptorKind.ComponentDescriptor, descriptor = "container: somename"),
       bodyClass = classOf[ProvisioningStatus]
     )
 
