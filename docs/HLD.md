@@ -64,11 +64,23 @@ When you declare variables in the root module of your configuration, you can set
 
 We should allow the user to define a configurable mapping so that we can take the values from any part of the deployment descriptor.
 
-For this purpose, we could use the [JsonPath](https://github.com/json-path/JsonPath) library.
-With this library, we could allow the user to define a mapping such as:
+For this purpose, we use the [JsonPath](https://github.com/json-path/JsonPath) library.
+With this library, we allow the user to define a mapping such as:
 
 | Terraform variable name | Json Path                                                                        |
-|--------------|----------------------------------------------------------------------------------|
-| prefix       | $.dataProduct.fullyQualifiedName                                                 |
-| name         | $.dataProduct.components[?(@.id == "id")].specific.container.name                |
-| path         | $.dataProduct.components[?(@.id == "id")].specific.container.directories[0].path |
+|-------------------------|----------------------------------------------------------------------------------|
+| prefix                  | $.dataProduct.fullyQualifiedName                                                 |
+| name                    | $.dataProduct.components[?(@.id == "id")].specific.container.name                |
+| path                    | $.dataProduct.components[?(@.id == "id")].specific.container.directories[0].path |
+
+## Multi-module
+
+This feature aims to reduce the number of microservices that need to be deployed, enabling the use of multiple TF modules from a single SP. Otherwise, you can end up with a lot of microservices each with a single TF module that all provision resources for the same technology.
+
+![Multi-module](hld-Multi-module.png)
+
+Using the `useCaseTemplateId` field from the descriptor as a key, we have a configurable mapping with the module to use (more precisely its path) that is completely managed by the platform team.
+
+### State management
+
+Each module must handle its own state management, making sure to appropriately segregate DP components with a reasonable `state key` to avoid collisions and use a fault-tolerant and lockable `state store` (remote backends, such as Amazon S3, Azure Blob Storage, or HashiCorp Consul, are a good fit as they provide also better collaboration and security).

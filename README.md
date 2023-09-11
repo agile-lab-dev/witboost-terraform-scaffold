@@ -172,6 +172,11 @@ The following var would be produced:
 -var resource_group_name="zoo"
 ```
 
+### State management
+State management in Terraform is a critical aspect of its functionality, as it helps Terraform keep track of the current state of your infrastructure and enables it to make informed decisions about what changes need to be applied to achieve the desired infrastructure configuration. Terraform uses a state file to store information about the resources it manages, such as their current state, resource dependencies, and metadata.
+
+Each configured module must handle its own state management, making sure to appropriately segregate DP components with a reasonable `state key` to avoid collisions and use a fault-tolerant and lockable `state store` (remote backends, such as Amazon S3, Azure Blob Storage, or HashiCorp Consul, are a good fit as they provide also better collaboration and security).
+
 ## Deploying
 
 This microservice is meant to be deployed to a Kubernetes cluster.
