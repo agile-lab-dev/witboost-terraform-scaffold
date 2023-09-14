@@ -223,4 +223,126 @@ class TerraformResultTest extends AnyFlatSpec with should.Matchers {
 
   }
 
+  "Terraform" should "extract outputs" in {
+
+    val outputString =
+      """
+        |{
+        |  "@level":"info",
+        |  "@message":"Outputs: 2",
+        |  "@module":"terraform.ui",
+        |  "@timestamp":"2023-09-04T14:19:04.774029+02:00",
+        |  "outputs":{
+        |	   "foo":{
+        |      "sensitive":false,
+        |      "type":"string",
+        |      "value":"bar"
+        |    },
+        |	   "fiz":{
+        |        "sensitive":false,
+        |        "type":"string",
+        |        "value":"biz"
+        |    }
+        |	 },
+        |  "type":"outputs"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val mockProcessor = new MockProcessor(0, outputString)
+    val terraform     = Terraform()
+      .outputInJson()
+      .processor(mockProcessor)
+      .onDirectory("folder")
+
+    val result = terraform.doApply()
+
+    println(result.buildOutputString)
+    val tfOutputs = result.terraformOutputs
+
+    result.isSuccess shouldBe true
+    tfOutputs.isRight shouldBe true
+
+    tfOutputs.getOrElse(null).size shouldEqual 2
+    tfOutputs.getOrElse(null).head.name shouldEqual "foo"
+    tfOutputs.getOrElse(null).head.value shouldEqual "bar"
+
+  }
+
+  "Terraform" should "extract 0 outputs" in {
+
+    val outputString =
+      """
+        |{
+        |  "@level":"info",
+        |  "@message":"Outputs: 0",
+        |  "@module":"terraform.ui",
+        |  "@timestamp":"2023-09-04T14:49:45.862557+02:00",
+        |  "outputs":{},
+        |  "type":"outputs"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val mockProcessor = new MockProcessor(0, outputString)
+    val terraform     = Terraform()
+      .outputInJson()
+      .processor(mockProcessor)
+      .onDirectory("folder")
+
+    val result = terraform.doApply()
+
+    println(result.buildOutputString)
+    val tfOutputs = result.terraformOutputs
+
+    result.isSuccess shouldBe true
+    tfOutputs.isRight shouldBe true
+
+    tfOutputs.getOrElse(null).size shouldEqual 0
+  }
+
+  "Terraform" should "succeed handling outputs parsing error" in {
+
+    val outputString =
+      """
+        |{
+        |  "@level":"info",
+        |  "@message":"Outputs: 0",
+        |  "@module":"terraform.ui",
+        |  "@timestamppppppp":"2023-09-04T14:49:45.862557+02:00",
+        |  "outputs":{},
+        |  "type":"outputs"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val mockProcessor = new MockProcessor(0, outputString)
+    val terraform     = Terraform()
+      .outputInJson()
+      .processor(mockProcessor)
+      .onDirectory("folder")
+
+    val result = terraform.doApply()
+
+    val tfOutputs = result.terraformOutputs
+
+    result.isSuccess shouldBe true
+    tfOutputs.isLeft shouldBe true
+
+  }
+
+  "Terraform" should "succeed handling no outputs" in {
+
+    val mockProcessor = new MockProcessor(0, "")
+    val terraform     = Terraform()
+      .outputInJson()
+      .processor(mockProcessor)
+      .onDirectory("folder")
+
+    val result = terraform.doApply()
+    val tfOutputs = result.terraformOutputs
+
+    result.isSuccess shouldBe true
+    tfOutputs.isRight shouldBe true
+    tfOutputs.getOrElse(null).size shouldBe 0
+
+  }
+
 }

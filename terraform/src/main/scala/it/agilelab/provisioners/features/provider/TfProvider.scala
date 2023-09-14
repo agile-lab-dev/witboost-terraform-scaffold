@@ -6,14 +6,16 @@ import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider
 import com.jayway.jsonpath.{ Configuration, JsonPath, JsonPathException }
 import it.agilelab.provisioners.configuration.TfConfiguration._
 import it.agilelab.provisioners.terraform.{ TerraformCommands, TerraformVariables }
-import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ErrorMessage }
+import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ErrorMessage, TerraformOutput }
 import it.agilelab.spinframework.app.features.provision.{ CloudProvider, ProvisionResult }
+import org.slf4j.{ Logger, LoggerFactory }
 
 import scala.jdk.CollectionConverters._
 import scala.util.{ Failure, Success, Try }
 
 class TfProvider(terraform: TerraformCommands) extends CloudProvider {
 
+  final private val logger: Logger     = LoggerFactory.getLogger(getClass.getName)
   private lazy val terraformInitResult = terraform.doInit()
   private lazy val conf: Configuration = Configuration
     .builder()
@@ -29,11 +31,19 @@ class TfProvider(terraform: TerraformCommands) extends CloudProvider {
       case Left(l)     => ProvisionResult.failure(l)
       case Right(vars) =>
         val applyResult = terraform.doApply(vars)
-        if (applyResult.isSuccess)
-          ProvisionResult.completed()
-        else
+        if (applyResult.isSuccess) {
+          ProvisionResult.completed(
+            applyResult.terraformOutputs match {
+              case Right(r) => r.filter(!_.sensitive).map(o => TerraformOutput(name = o.name, o.value))
+              // If the parsing of terraform output fails, an empty seq is returned.
+              // The provisioning is considered successful, but no output will be returned back to the coordinator
+              case Left(f)  =>
+                logger.error("An error occurred while trying to extract outputs from terraform execution", f)
+                Seq.empty
+            }
+          )
+        } else
           ProvisionResult.failure(applyResult.errorMessages.map(ErrorMessage))
-
     }
   }
 

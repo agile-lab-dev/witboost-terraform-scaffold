@@ -1,7 +1,9 @@
 package it.agilelab.provisioners.terraform.unit
 
+import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.noLog
 import it.agilelab.provisioners.terraform.{ Terraform, TerraformResult, TerraformVariables }
+import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ParserFactory, YamlDescriptor }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
@@ -195,6 +197,141 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     terraform.doApply()
 
     mockLogger.lastLine shouldBe empty
+  }
+
+  "Terraform" should "perform apply and return non-sensitive outputs only" in {
+
+    val outputString =
+      """
+        |{
+        |  "@level":"info",
+        |  "@message":"Outputs: 2",
+        |  "@module":"terraform.ui",
+        |  "@timestamp":"2023-09-04T14:19:04.774029+02:00",
+        |  "outputs":{
+        |	   "foo":{
+        |      "sensitive":true,
+        |      "type":"string",
+        |      "value":"bar"
+        |    },
+        |	   "fiz":{
+        |        "sensitive":false,
+        |        "type":"string",
+        |        "value":"biz"
+        |    }
+        |	 },
+        |  "type":"outputs"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Nicolò Bidotti
+        |    intField: 33
+        |    doubleField: 33.9
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+        |        description: Output Port for vaccinations data using Hasura
+        |        name: Hasura Output Port
+        |        fullyQualifiedName: Hasura Output Port
+        |        dataContract:
+        |          schema:
+        |            - name: date
+        |              dataType: DATE
+        |            - name: location_key
+        |              dataType: TEXT
+        |              constraint: PRIMARY_KEY
+        |        specific:
+        |            customTableName: healthcare_vaccinationsnb_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+
+    val mockProcessor = new MockProcessor(0, outputString)
+
+    val terraform = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+      .onDirectory("folder")
+
+    val tfProvider = new TfProvider(terraform)
+    val res        = tfProvider.provision(descriptor)
+
+    res.outputs.size shouldBe 1
+    res.outputs.head.name shouldBe "fiz"
+    res.outputs.head.value shouldBe "biz"
+
+  }
+
+  "Terraform" should "succeed but return no outputs due to output parsing failure" in {
+
+    val outputString =
+      """
+        |{
+        |  "@level":"info",
+        |  "@message":"Outputs: 2",
+        |  "@module":"terraform.ui",
+        |  "@timestamp":"2023-09-04T14:19:04.774029+02:00",
+        |  "outputs":{
+        |	   "foo":{
+        |      "sensitive":true,
+        |      "type":"string",
+        |      "value":"bar"
+        |    },
+        |	   "fiz":{
+        |        "type":"string",
+        |        "value":"biz"
+        |    }
+        |	 },
+        |  "type":"outputs"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Nicolò Bidotti
+        |    intField: 33
+        |    doubleField: 33.9
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+        |        description: Output Port for vaccinations data using Hasura
+        |        name: Hasura Output Port
+        |        fullyQualifiedName: Hasura Output Port
+        |        dataContract:
+        |          schema:
+        |            - name: date
+        |              dataType: DATE
+        |            - name: location_key
+        |              dataType: TEXT
+        |              constraint: PRIMARY_KEY
+        |        specific:
+        |            customTableName: healthcare_vaccinationsnb_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+
+    val mockProcessor = new MockProcessor(0, outputString)
+
+    val terraform = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+      .onDirectory("folder")
+
+    val tfProvider = new TfProvider(terraform)
+    val res        = tfProvider.provision(descriptor)
+
+    res.outputs.size shouldBe 0
+
   }
 
 }

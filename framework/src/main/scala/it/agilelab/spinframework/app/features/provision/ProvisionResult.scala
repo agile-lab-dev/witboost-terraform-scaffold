@@ -1,13 +1,15 @@
 package it.agilelab.spinframework.app.features.provision
 
-import it.agilelab.spinframework.app.features.compiler.ErrorMessage
+import it.agilelab.spinframework.app.features.compiler.{ ErrorMessage, TerraformOutput }
 
 object ProvisionResult {
 
-  def completed(): ProvisionResult = completed(ComponentToken(""))
+  def completed(): ProvisionResult = completed(ComponentToken(""), outputs = Seq.empty)
 
-  def completed(componentToken: ComponentToken): ProvisionResult =
-    ProvisionResult(ProvisioningStatus.Completed, componentToken, Seq.empty)
+  def completed(outputs: Seq[TerraformOutput]): ProvisionResult = completed(ComponentToken(""), outputs = outputs)
+
+  def completed(componentToken: ComponentToken, outputs: Seq[TerraformOutput]): ProvisionResult =
+    ProvisionResult(ProvisioningStatus.Completed, componentToken, Seq.empty, outputs)
 
   def failure(errors: Seq[ErrorMessage]): ProvisionResult =
     ProvisionResult(ProvisioningStatus.Failed, ComponentToken(""), errors)
@@ -26,7 +28,8 @@ object ProvisionResult {
 case class ProvisionResult(
   provisioningStatus: ProvisioningStatus,
   componentToken: ComponentToken,
-  errors: Seq[ErrorMessage]
+  errors: Seq[ErrorMessage],
+  outputs: Seq[TerraformOutput] = Seq.empty
 ) {
 
   /** Returns true if the provisioning of the component is successful.

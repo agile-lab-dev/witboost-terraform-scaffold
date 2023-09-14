@@ -1,16 +1,27 @@
 package it.agilelab.spinframework.app.api
 
 import cats.effect.IO
+import io.circe.JsonObject
+import io.circe.generic.auto._
+import io.circe.syntax._
 import it.agilelab.spinframework.app.api.generated.Resource
+import it.agilelab.spinframework.app.api.generated.definitions.{
+  DescriptorKind,
+  Info,
+  ProvisioningRequest,
+  SystemError,
+  ValidationError,
+  ProvisioningStatus => PSDto
+}
 import it.agilelab.spinframework.app.api.helpers.HandlerTestBase
-import it.agilelab.spinframework.app.features.compiler.YamlDescriptor
-import it.agilelab.spinframework.app.features.provision.{ComponentToken, Provision, ProvisionResult}
-import org.http4s.implicits.http4sLiteralsSyntax
-import org.http4s.{Method, Request, Response, Status}
-import it.agilelab.spinframework.app.api.generated.definitions.{DescriptorKind, ProvisioningRequest, SystemError, ValidationError, ProvisioningStatus => PSDto}
+import it.agilelab.spinframework.app.api.mapping.ProvisioningInfoMapper.{ InnerInfoJson, OutputsWrapper }
+import it.agilelab.spinframework.app.features.compiler.{ ErrorMessage, TerraformOutput, YamlDescriptor }
+import it.agilelab.spinframework.app.features.provision.{ ComponentToken, Provision, ProvisionResult }
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s.circe.CirceEntityEncoder._
-import it.agilelab.spinframework.app.features.compiler.ErrorMessage
+import org.http4s.implicits.http4sLiteralsSyntax
+import org.http4s.{ Method, Request, Response, Status }
+
 class ProvisionHandlerTest extends HandlerTestBase {
   class ProvisionStub extends Provision {
     override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = ProvisionResult.completed()
@@ -104,6 +115,54 @@ class ProvisionHandlerTest extends HandlerTestBase {
     val expected                   = SystemError("error")
 
     check[SystemError](response, Status.InternalServerError) shouldBe true
+  }
+
+  "The server" should "return a 200 - COMPLETED (with outputs)" in {
+    val provisionStub: Provision   = new ProvisionStub {
+      override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = {
+        val outputs: Seq[TerraformOutput] = Seq(
+          TerraformOutput("foo", "bar")
+        )
+        ProvisionResult.completed(outputs)
+      }
+    }
+    val handler                    = new SpecificProvisionerHandler(provisionStub, null, null)
+    val response: IO[Response[IO]] = new Resource[IO]()
+      .routes(handler)
+      .orNotFound
+      .run(
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/provision")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
+      )
+
+    val expected = new PSDto(
+      PSDto.Status.Completed,
+      "",
+      Some(Info(JsonObject.empty.asJson, OutputsWrapper(Map("foo" -> InnerInfoJson("bar"))).asJson))
+    )
+
+    check[PSDto](response, Status.Ok, Some(expected)) shouldBe true
+  }
+
+  "The server" should "return a 200 - COMPLETED (without outputs)" in {
+    val provisionStub: Provision   = new ProvisionStub {
+      override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = {
+        val outputs: Seq[TerraformOutput] = Seq()
+        ProvisionResult.completed(outputs)
+      }
+    }
+    val handler                    = new SpecificProvisionerHandler(provisionStub, null, null)
+    val response: IO[Response[IO]] = new Resource[IO]()
+      .routes(handler)
+      .orNotFound
+      .run(
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/provision")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
+      )
+
+    val expected = new PSDto(PSDto.Status.Completed, "", None)
+
+    check[PSDto](response, Status.Ok, Some(expected)) shouldBe true
   }
 
 }
