@@ -1,0 +1,2 @@
+it.agilelab.plugin.principalsmapping.impl.identity.IdentityMapperFactory
+it.agilelab.plugin.principalsmapping.impl.aws.IamMapperFactory

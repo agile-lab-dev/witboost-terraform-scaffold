@@ -50,6 +50,28 @@ lazy val terraform = (project in file("terraform"))
   )
   .enablePlugins(JavaAppPackaging)
   .dependsOn(framework)
+  .dependsOn(principalmappingapi)
+
+lazy val principalmappingapi     = (project in file("principalmapping-api"))
+  .settings(
+    name := "principalmapping-api",
+    libraryDependencies ++= Dependencies.principalMappingPluginDependencies
+  )
+lazy val principalmappingsamples = (project in file("principalmapping-samples"))
+  .settings(
+    name := "principalmapping-samples",
+    libraryDependencies ++= Dependencies.principalMappingPluginDependencies,
+    libraryDependencies ++= Dependencies.testDependencies
+  )
+  .dependsOn(principalmappingapi)
+
+lazy val principalmappingappmock = (project in file("principalmapping-app-mock"))
+  .settings(
+    name := "principalmapping-app-mock",
+    libraryDependencies ++= Dependencies.testDependencies
+  )
+  .dependsOn(principalmappingapi)
+  .dependsOn(principalmappingsamples)
 
 lazy val root = (project in file("."))
   .aggregate(framework, spmock, terraform)

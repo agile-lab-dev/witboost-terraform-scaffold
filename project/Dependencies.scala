@@ -2,10 +2,11 @@ import sbt._
 trait Dependencies {
 
   lazy val testDependencies: Seq[ModuleID] = Seq(
-    "org.scalactic"       %% "scalactic" % "3.2.12",
-    "org.scalatest"       %% "scalatest" % "3.2.12" % Test,
-    "com.lihaoyi"         %% "requests"  % "0.7.1"  % Test,
-    "com.google.code.gson" % "gson"      % "2.9.0"  % Test
+    "org.scalactic"       %% "scalactic"          % "3.2.12",
+    "org.scalatest"       %% "scalatest"          % "3.2.12"  % Test,
+    "com.lihaoyi"         %% "requests"           % "0.7.1"   % Test,
+    "com.google.code.gson" % "gson"               % "2.9.0"   % Test,
+    "org.mockito"          % "mockito-scala_2.13" % "1.17.22" % Test
   )
 
   lazy val frameworkDependencies: Seq[ModuleID] = Seq(
@@ -18,6 +19,12 @@ trait Dependencies {
     "ch.qos.logback"             % "logback-classic"  % "1.4.6",
     "com.jayway.jsonpath"        % "json-path"        % "2.8.0",
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.15.2"
+  )
+
+  lazy val principalMappingPluginDependencies: Seq[ModuleID] = Seq(
+    "software.amazon.awssdk" % "iam"    % "2.20.140",
+    "software.amazon.awssdk" % "sts"    % "2.20.140",
+    "com.typesafe"           % "config" % "1.2.1"
   )
 
   private val http4sVersion                  = "0.23.18"
