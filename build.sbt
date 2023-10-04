@@ -34,6 +34,7 @@ lazy val framework = (project in file("framework"))
     },
     coverageExcludedPackages := "it.agilelab.spinframework.app.api.generated.*"
   )
+  .dependsOn(principalmappingsamples)
 
 lazy val spmock = (project in file("spmock"))
   .settings(
@@ -41,6 +42,7 @@ lazy val spmock = (project in file("spmock"))
     libraryDependencies ++= Dependencies.testDependencies
   )
   .dependsOn(framework)
+  .dependsOn(principalmappingsamples)
 
 lazy val terraform = (project in file("terraform"))
   .settings(

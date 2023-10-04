@@ -15,4 +15,10 @@ class MockCloudProvider extends CloudProvider {
     println(descriptor)
     ProvisionResult.completed()
   }
+
+  override def updateAcl(descriptor: ComponentDescriptor, refs: Set[String]): ProvisionResult = {
+    println("######### /updateacl #########")
+    println(descriptor)
+    ProvisionResult.completed()
+  }
 }

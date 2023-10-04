@@ -1,3 +1,3 @@
 package it.agilelab.spinframework.app.features.compiler
 
-case class ParsingResult(isInvalidYaml: Boolean, descriptor: ComponentDescriptor) {}
+case class ParsingResult(isInvalidInput: Boolean, descriptor: ComponentDescriptor) {}

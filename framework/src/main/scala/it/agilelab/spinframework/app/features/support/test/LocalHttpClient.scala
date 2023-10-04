@@ -16,6 +16,7 @@ class LocalHttpClient(val port: Int, val pref: Option[String] = None) {
   gsonBuilder.registerTypeAdapter(classOf[PS], new StatusDeserializer)
   gsonBuilder.registerTypeAdapter(classOf[DescriptorKind], new DescriptorKindSerializer)
   gsonBuilder.registerTypeAdapter(classOf[Option[Any]], new OptionSerializer)
+  gsonBuilder.registerTypeAdapter(classOf[Vector[String]], new VectorSerializer)
   private val gson        = gsonBuilder.create
 
   def post[T](endpoint: String, request: AnyRef, bodyClass: Class[T]): HttpResponse[T] = {
@@ -66,4 +67,9 @@ class OptionSerializer extends JsonSerializer[Option[Any]] {
       case Some(value) => context.serialize(value)
       case None        => JsonNull.INSTANCE
     }
+}
+
+class VectorSerializer extends JsonSerializer[Vector[String]] {
+  override def serialize(src: Vector[String], typeOfSrc: Type, context: JsonSerializationContext): JsonElement =
+    context.serialize(src.toArray)
 }

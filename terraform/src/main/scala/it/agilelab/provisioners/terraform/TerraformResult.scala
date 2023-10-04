@@ -1,12 +1,9 @@
 package it.agilelab.provisioners.terraform
 
-import io.circe
-import io.circe.{ parser, Decoder, Encoder, Json, ParsingFailure }
 import io.circe.generic.JsonCodec
 import io.circe.generic.extras.semiauto._
 import io.circe.generic.extras.{ Configuration, JsonKey }
-
-import scala.collection.immutable
+import io.circe.{ parser, Decoder, Encoder }
 
 /** The result coming from the execution of a Terraform command.
   *

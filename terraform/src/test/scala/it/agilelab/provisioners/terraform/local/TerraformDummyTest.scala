@@ -51,7 +51,7 @@ class TerraformDummyTest extends AnyFlatSpec with TerraformLocalTestBase with Fr
     .withLogger(logOnConsole)
     .onDirectory(terraform_repositoryPath)
 
-  val tfProvider = new TfProvider(terraform)
+  val tfProvider = new TfProvider(terraform, null)
 
   "Terraform" should "generate a random string" in {
 

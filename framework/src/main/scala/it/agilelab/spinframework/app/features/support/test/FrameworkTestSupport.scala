@@ -6,7 +6,7 @@ trait FrameworkTestSupport {
   def descriptorFrom(yamlDescriptor: String): ComponentDescriptor = {
     val parser        = ParserFactory.parser()
     val parsingResult = YamlDescriptor(yamlDescriptor).parse(parser)
-    if (parsingResult.isInvalidYaml) throw new IllegalArgumentException("A no valid yaml file is provided")
+    if (parsingResult.isInvalidInput) throw new IllegalArgumentException("A no valid yaml file is provided")
     parsingResult.descriptor
   }
 

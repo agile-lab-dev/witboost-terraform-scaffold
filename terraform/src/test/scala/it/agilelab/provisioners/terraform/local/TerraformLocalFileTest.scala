@@ -51,7 +51,7 @@ class TerraformLocalFileTest extends AnyFlatSpec with TerraformLocalTestBase wit
     .withLogger(logOnConsole)
     .onDirectory(folder("/local-file"))
 
-  private val tfProvider = new TfProvider(terraform)
+  private val tfProvider = new TfProvider(terraform, null)
 
   "Terraform" should "create a local file" in {
     shouldNotExist(file("testfile.txt"))

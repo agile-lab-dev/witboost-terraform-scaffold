@@ -6,6 +6,7 @@ import cats.implicits.toSemigroupKOps
 import it.agilelab.spinframework.app.api.routes.HealthCheck
 import it.agilelab.spinframework.app.api.generated.{ Handler, Resource }
 import it.agilelab.spinframework.app.api.SpecificProvisionerHandler
+import it.agilelab.spinframework.app.config.Configuration.provisionerConfig
 import it.agilelab.spinframework.app.features.compiler.{ CompileService, Parser, ParserFactory }
 import it.agilelab.spinframework.app.features.provision.ProvisionService
 import org.http4s.server.middleware.Logger
@@ -20,7 +21,9 @@ final class FrameworkDependencies(specific: SpecificProvisionerDependencies) {
 
   private val parser: Parser                  = ParserFactory.parser()
   private val compileService                  = new CompileService(parser, specific.descriptorValidator)
-  private val provisionService                = new ProvisionService(compileService, specific.cloudProvider)
+  private val principalMapperPluginLoader     = new PrincipalMapperPluginLoader()
+  private val provisionService                =
+    new ProvisionService(compileService, specific.cloudProvider, principalMapperPluginLoader)
   private val provisionerHandler: Handler[IO] =
     new SpecificProvisionerHandler(provisionService, compileService, specific.getStatus)
   private val provisionerService              = new Resource[IO]().routes(provisionerHandler)

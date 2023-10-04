@@ -1,24 +1,39 @@
 package it.agilelab.spinframework.app.api
 
 import cats.effect.IO
+import com.typesafe.config.Config
 import io.circe.JsonObject
 import io.circe.generic.auto._
 import io.circe.syntax._
 import it.agilelab.spinframework.app.api.generated.Resource
-import it.agilelab.spinframework.app.api.generated.definitions.{DescriptorKind, Info, ProvisioningRequest, SystemError, ValidationError, ProvisioningStatus => PSDto}
+import it.agilelab.spinframework.app.api.generated.definitions.{
+  DescriptorKind,
+  Info,
+  ProvisioningRequest,
+  SystemError,
+  ValidationError,
+  ProvisioningStatus => PSDto
+}
 import it.agilelab.spinframework.app.api.helpers.HandlerTestBase
-import it.agilelab.spinframework.app.api.mapping.ProvisioningInfoMapper.{InnerInfoJson, OutputsWrapper}
-import it.agilelab.spinframework.app.features.compiler.{ErrorMessage, TerraformOutput, YamlDescriptor}
-import it.agilelab.spinframework.app.features.provision.{ComponentToken, Provision, ProvisionResult}
+import it.agilelab.spinframework.app.api.mapping.ProvisioningInfoMapper.{ InnerInfoJson, OutputsWrapper }
+import it.agilelab.spinframework.app.config.Configuration.provisionerConfig
+import it.agilelab.spinframework.app.features.compiler.{ ErrorMessage, JsonDescriptor, TerraformOutput, YamlDescriptor }
+import it.agilelab.spinframework.app.features.provision.{ ComponentToken, Provision, ProvisionResult }
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s.circe.CirceEntityEncoder._
 import org.http4s.implicits.http4sLiteralsSyntax
-import org.http4s.{Method, Request, Response, Status}
+import org.http4s.{ Method, Request, Response, Status }
 
 class ProvisionHandlerTest extends HandlerTestBase {
   class ProvisionStub extends Provision {
     override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = ProvisionResult.completed()
     override def doUnprovisioning(yaml: YamlDescriptor): ProvisionResult         = ProvisionResult.completed()
+    override def doUpdateAcl(
+      jsonDescriptor: JsonDescriptor,
+      refs: Set[String],
+      cfg: Config = provisionerConfig
+    ): ProvisionResult                                                           =
+      ProvisionResult.completed()
   }
 
   "The server" should "return a 200 - COMPLETED" in {

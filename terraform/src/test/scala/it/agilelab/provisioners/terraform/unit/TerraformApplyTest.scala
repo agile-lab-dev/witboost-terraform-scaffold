@@ -259,7 +259,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
       .withLogger(noLog)
       .onDirectory("folder")
 
-    val tfProvider = new TfProvider(terraform)
+    val tfProvider = new TfProvider(terraform, null)
     val res        = tfProvider.provision(descriptor)
 
     res.outputs.size shouldBe 1
@@ -327,7 +327,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
       .withLogger(noLog)
       .onDirectory("folder")
 
-    val tfProvider = new TfProvider(terraform)
+    val tfProvider = new TfProvider(terraform, null)
     val res        = tfProvider.provision(descriptor)
 
     res.outputs.size shouldBe 0

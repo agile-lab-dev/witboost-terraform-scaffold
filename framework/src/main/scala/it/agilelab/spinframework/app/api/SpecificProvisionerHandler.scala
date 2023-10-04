@@ -11,7 +11,7 @@ import it.agilelab.spinframework.app.api.generated.definitions.{
 }
 import it.agilelab.spinframework.app.api.generated.{ Handler, Resource }
 import it.agilelab.spinframework.app.api.mapping.{ ProvisioningStatusMapper, ValidationErrorMapper }
-import it.agilelab.spinframework.app.features.compiler.{ Compile, YamlDescriptor }
+import it.agilelab.spinframework.app.features.compiler.{ Compile, JsonDescriptor, YamlDescriptor }
 import it.agilelab.spinframework.app.features.provision.ProvisioningStatus.{ Completed, Failed, Running }
 import it.agilelab.spinframework.app.features.provision.{ ComponentToken, Provision, ProvisioningStatus }
 import it.agilelab.spinframework.app.features.status.GetStatus
@@ -24,6 +24,7 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
   sealed trait OperationType
   case object Provision   extends OperationType
   case object Unprovision extends OperationType
+  case object UpdateAcl   extends OperationType
   case object Validate    extends OperationType
   case object Status      extends OperationType
 
@@ -50,6 +51,10 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
       case Unprovision =>
         SystemError(
           s"An unexpected error occurred while processing the unprovision request. Please try again later. If the issue still persists, contact the platform team for assistance! Detailed error: ${f.getMessage}"
+        )
+      case UpdateAcl   =>
+        SystemError(
+          s"An unexpected error occurred while processing the updateAcl request. Please try again later. If the issue still persists, contact the platform team for assistance! Detailed error: ${f.getMessage}"
         )
       case Validate    =>
         SystemError(
@@ -93,8 +98,15 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
   override def updateacl(
     respond: Resource.UpdateaclResponse.type
   )(body: UpdateAclRequest): IO[Resource.UpdateaclResponse] = IO {
-    Resource.UpdateaclResponse.InternalServerError(SystemError("The updateacl operation is not supported"))
-  }
+    val descriptor = JsonDescriptor(body.provisionInfo.request)
+    val result     = provision.doUpdateAcl(descriptor, body.refs.toSet)
+    result.provisioningStatus match {
+      case Running   => Resource.UpdateaclResponse.Accepted(result.componentToken.asString)
+      case Completed => Resource.UpdateaclResponse.Ok(ProvisioningStatusMapper.from(result))
+      case Failed    =>
+        Resource.UpdateaclResponse.BadRequest(ValidationErrorMapper.from(result))
+    }
+  }.handleError((f: Throwable) => Resource.UpdateaclResponse.InternalServerError(systemError(f, UpdateAcl)))
 
   override def asyncValidate(respond: Resource.AsyncValidateResponse.type)(
     body: ValidationRequest

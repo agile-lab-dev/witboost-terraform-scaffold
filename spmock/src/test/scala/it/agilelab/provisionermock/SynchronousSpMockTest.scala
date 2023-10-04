@@ -3,8 +3,10 @@ package it.agilelab.provisionermock
 import it.agilelab.spinframework.app.SpecificProvisioner
 import it.agilelab.spinframework.app.api.generated.definitions.{
   DescriptorKind,
+  ProvisionInfo,
   ProvisioningRequest,
-  ProvisioningStatus
+  ProvisioningStatus,
+  UpdateAclRequest
 }
 import it.agilelab.spinframework.app.features.support.test.HttpResponse
 
@@ -20,6 +22,19 @@ class SynchronousSpMockTest extends SpMockSuite {
     )
 
     provisionResponse.status shouldBe 200
+    provisionResponse.body.status shouldBe ProvisioningStatus.Status.Completed
+  }
+
+  "The synchronous spmock" should "accept an updateacl request and return the provisioning status" in {
+
+    val refs: Vector[String] = Vector("alice", "bob")
+
+    val provisionResponse: HttpResponse[ProvisioningStatus] = httpClient.post(
+      endpoint = "/v1/updateacl",
+      request = UpdateAclRequest(refs, ProvisionInfo("{}", "{}")),
+      bodyClass = classOf[ProvisioningStatus]
+    )
+
     provisionResponse.body.status shouldBe ProvisioningStatus.Status.Completed
   }
 

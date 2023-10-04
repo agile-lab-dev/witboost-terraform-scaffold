@@ -19,6 +19,7 @@ sealed private[app] trait SpecificProvisionerDependencies {
   /** Returns the provisioning status of a component.
     */
   def getStatus: GetStatus
+
 }
 
 /** Extend this trait to specify a synchronous model for a specific provisioner.

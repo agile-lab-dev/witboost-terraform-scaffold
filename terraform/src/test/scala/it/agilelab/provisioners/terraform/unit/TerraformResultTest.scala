@@ -336,7 +336,7 @@ class TerraformResultTest extends AnyFlatSpec with should.Matchers {
       .processor(mockProcessor)
       .onDirectory("folder")
 
-    val result = terraform.doApply()
+    val result    = terraform.doApply()
     val tfOutputs = result.terraformOutputs
 
     result.isSuccess shouldBe true

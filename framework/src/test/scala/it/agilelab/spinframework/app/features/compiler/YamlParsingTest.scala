@@ -14,7 +14,7 @@ class YamlParsingTest extends AnyFlatSpec with should.Matchers {
 
     val parsingResult = validYamlDescriptor.parse(parser)
 
-    parsingResult.isInvalidYaml shouldBe false
+    parsingResult.isInvalidInput shouldBe false
   }
 
   "This yaml" should "be parsed as an invalid yaml" in {
@@ -24,6 +24,6 @@ class YamlParsingTest extends AnyFlatSpec with should.Matchers {
 
     val parsingResult = invalidYamlDescriptor.parse(parser)
 
-    parsingResult.isInvalidYaml shouldBe true
+    parsingResult.isInvalidInput shouldBe true
   }
 }

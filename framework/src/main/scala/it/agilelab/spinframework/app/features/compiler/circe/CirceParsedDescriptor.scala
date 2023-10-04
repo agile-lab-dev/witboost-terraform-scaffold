@@ -18,4 +18,7 @@ class CirceParsedDescriptor(cursor: ACursor, path: Seq[String]) extends Componen
 
   override def toString: String = cursor.focus.getOrElse(Json.Null).toString()
 
+  override def succeeded: Boolean =
+    this.cursor.succeeded
+
 }

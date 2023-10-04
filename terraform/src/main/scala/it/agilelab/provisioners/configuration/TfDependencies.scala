@@ -19,8 +19,14 @@ class TfDependencies extends SynchronousSpecificProvisionerDependencies {
     .outputInJson()
     .onDirectory(provisionerConfig.getString(terraform_repositoryPath))
 
-  private val tfProvider: TfProvider = new TfProvider(terraform)
+  private val terraformAcl = Terraform()
+    .withLogger(TerraformLogger.logOnConsole)
+    .outputInJson()
+    .onDirectory(provisionerConfig.getString(s"$terraform_repositoryPath") + "/acl")
+
+  private val tfProvider: TfProvider = new TfProvider(terraform, terraformAcl)
 
   override def descriptorValidator: DescriptorValidator = new SpecificDescriptorValidator()
   override def cloudProvider: CloudProvider             = tfProvider
+
 }

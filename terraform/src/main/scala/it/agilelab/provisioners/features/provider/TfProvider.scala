@@ -5,6 +5,7 @@ import com.jayway.jsonpath.Option.{ ALWAYS_RETURN_LIST, DEFAULT_PATH_LEAF_TO_NUL
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider
 import com.jayway.jsonpath.{ Configuration, JsonPath, JsonPathException }
 import it.agilelab.provisioners.configuration.TfConfiguration._
+import it.agilelab.provisioners.features.descriptor.TerraformOutputsDescriptor
 import it.agilelab.provisioners.terraform.{ TerraformCommands, TerraformVariables }
 import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ErrorMessage, TerraformOutput }
 import it.agilelab.spinframework.app.features.provision.{ CloudProvider, ProvisionResult }
@@ -13,10 +14,13 @@ import org.slf4j.{ Logger, LoggerFactory }
 import scala.jdk.CollectionConverters._
 import scala.util.{ Failure, Success, Try }
 
-class TfProvider(terraform: TerraformCommands) extends CloudProvider {
+class TfProvider(terraform: TerraformCommands, terraformAcl: TerraformCommands) extends CloudProvider {
 
-  final private val logger: Logger     = LoggerFactory.getLogger(getClass.getName)
-  private lazy val terraformInitResult = terraform.doInit()
+  private lazy val terraformInitResult    = terraform.doInit()
+  private lazy val terraformAclInitResult = terraformAcl.doInit()
+
+  final private val logger: Logger = LoggerFactory.getLogger(getClass.getName)
+
   private lazy val conf: Configuration = Configuration
     .builder()
     .jsonProvider(new JacksonJsonNodeJsonProvider())
@@ -57,6 +61,23 @@ class TfProvider(terraform: TerraformCommands) extends CloudProvider {
         else
           ProvisionResult.failure(result.errorMessages.map(ErrorMessage))
     }
+
+  override def updateAcl(descriptor: ComponentDescriptor, refs: Set[String]): ProvisionResult = {
+    if (!terraformAclInitResult.isSuccess)
+      return ProvisionResult.failure(terraformAclInitResult.errorMessages.map(ErrorMessage))
+
+    TerraformOutputsDescriptor(descriptor).mapOutputs match {
+      case Right(m) =>
+        val v           = m + ("principals" -> refs.mkString(","))
+        val vars        = new TerraformVariables(v)
+        val applyResult = terraformAcl.doApply(vars)
+        if (applyResult.isSuccess)
+          ProvisionResult.completed()
+        else
+          ProvisionResult.failure(applyResult.errorMessages.map(ErrorMessage))
+      case Left(l)  => ProvisionResult.failure(Seq(ErrorMessage(l.getMessage)))
+    }
+  }
 
   def variablesFrom(
     descriptor: ComponentDescriptor,

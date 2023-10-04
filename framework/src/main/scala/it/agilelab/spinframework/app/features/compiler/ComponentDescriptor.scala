@@ -22,4 +22,10 @@ trait ComponentDescriptor {
     * @return the specified field
     */
   def field(fieldName: String): Field
+
+  /** Checks whether the underlying cursor represents the result of a successful operation.
+    *
+    * @return a boolean
+    */
+  def succeeded: Boolean
 }

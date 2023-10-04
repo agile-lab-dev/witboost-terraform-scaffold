@@ -7,7 +7,7 @@ variable "storage_account_location" {
 }
 
 variable "storage_account_name" {
-  default = "tfspecificprovisioner"
+  default = "tfspecificprovisionertwo"
 }
 
 variable "filesystem_name" {

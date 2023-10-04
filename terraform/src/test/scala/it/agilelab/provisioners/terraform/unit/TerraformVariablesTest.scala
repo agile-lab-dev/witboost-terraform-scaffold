@@ -1,13 +1,13 @@
 package it.agilelab.provisioners.terraform.unit
 
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformVariables }
+import it.agilelab.provisioners.features.descriptor.TerraformOutputsDescriptor
+import it.agilelab.provisioners.features.provider.TfProvider
+import it.agilelab.provisioners.terraform.Terraform
+import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, Parser, ParserFactory }
+import it.agilelab.spinframework.app.features.provision.ProvisioningStatus
+import it.agilelab.spinframework.app.features.support.test._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
-import it.agilelab.provisioners.features.provider.TfProvider
-import it.agilelab.spinframework.app.features.compiler.ComponentDescriptor
-import it.agilelab.spinframework.app.features.support.test._
-import it.agilelab.provisioners.TestConfig
-import it.agilelab.spinframework.app.features.provision.ProvisioningStatus
 
 class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with FrameworkTestSupport {
 
@@ -240,7 +240,7 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
   val terraform                       = Terraform()
     .processor(mockProcessor)
     .onDirectory("folder")
-  val tfProvider                      = new TfProvider(terraform)
+  val tfProvider                      = new TfProvider(terraform, null)
 
   "variablesFrom" should "return correct vars" in {
 
@@ -324,6 +324,52 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
 
     val res = tfProvider.unprovision(descriptor)
     res.provisioningStatus shouldBe ProvisioningStatus.Completed
+
+  }
+
+  "TerraformOutputsDescriptor" should "extracts the outputs from the descriptor" in {
+
+    val descriptor = descriptorFrom(
+      """
+        |id: urn:dmb:dp:sales:invoices:0
+        |info:
+        |  publicInfo:
+        |    taskId:
+        |      type: string
+        |      label: Task ID
+        |      value: b4a8a5a2-af34-4b51-aeb8-7b9e9c9f48d4
+        |  privateInfo:
+        |    outputs:
+        |      comp_id:
+        |        value: "/subscriptions/61eabe24-6c0f-40d4-bd5c-4a7f9026e819/resourceGroups/witboost/providers/Microsoft.Storage/storageAccounts/tfspecificprovisioner"
+        |      foo:
+        |        value: bar
+        |  latestProvisioningOperation:
+        |    status: Successful
+        |    operation: Deploy
+        |    kind: dataproduct
+        |name: Invoices
+        |tags: []
+        |""".stripMargin
+    )
+
+    val r = TerraformOutputsDescriptor(descriptor).mapOutputs
+
+    r.isRight shouldBe true
+    r.getOrElse(null).size shouldBe 2
+    r.getOrElse(null).tail shouldBe Map("foo" -> "bar")
+  }
+
+  "The parser" should "parse the descriptor in json format correctly" in {
+
+    val s =
+      "{\"status\":\"COMPLETED\",\"result\":\"\",\"info\":{\"publicInfo\":{},\"privateInfo\":{\"outputs\":{\"comp_id\":{\"value\":\"/subscriptions/61eabe24-6c0f-40d4-bd5c-4a7f9026e819/resourceGroups/witboost/providers/Microsoft.Storage/storageAccounts/tfspecificprovisionertwo\"},\"comp_name\":{\"value\":\"tfspecificprovisionertwo\"}}}},\"logs\":null}"
+
+    val parser: Parser = ParserFactory.parser()
+    val p              = parser.parseJson(s)
+
+    p.isInvalidInput shouldBe false
+    p.descriptor.sub("info").sub("publicInfo").succeeded shouldBe true
 
   }
 
