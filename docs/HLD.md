@@ -73,6 +73,25 @@ With this library, we allow the user to define a mapping such as:
 | name                    | $.dataProduct.components[?(@.id == "id")].specific.container.name                |
 | path                    | $.dataProduct.components[?(@.id == "id")].specific.container.directories[0].path |
 
+## UpdateACL
+
+The UpdateAcl operation is responsible for granting users and groups access to provisioned resources.
+
+
+![UpdateAcl](hld-UpdateAcl.png)
+
+The user needs to write a Terraform module responsible for creating the needed authorization resources (e.g. policies, roles).
+This terraform module is a sub-module of the main module (used by the provision/unprovision endpoints).
+
+- the `updateAcl` request is translated to an `apply` operation of the acl submodule on Terraform side
+- the `provision` request doesn't touch the acl module.
+- the `unprovision`, which destroys the main module, also destroys the acl module
+
+
+### Principal mapping
+
+The witboost subject must be mapped to the corresponding cloud entity (e.g. aws iam user/role, azure user). Since this Specific Provisioner is generic by definition, we cannot infer the mapping logic. Therefore, we use a pluggable way of defining a custom mapping logic via SPI (Java Service Provider Interface). For the sake of simplicity and guidance, we also provide some samples.
+
 ## Multi-module
 
 This feature aims to reduce the number of microservices that need to be deployed, enabling the use of multiple TF modules from a single SP. Otherwise, you can end up with a lot of microservices each with a single TF module that all provision resources for the same technology.
