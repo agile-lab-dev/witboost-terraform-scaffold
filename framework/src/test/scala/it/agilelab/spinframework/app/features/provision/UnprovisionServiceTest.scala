@@ -1,18 +1,10 @@
 package it.agilelab.spinframework.app.features.provision
 
+import it.agilelab.spinframework.app.cloudprovider.CloudProviderStub
+import it.agilelab.spinframework.app.config.SynchronousSpecificProvisionerDependencies
 import it.agilelab.spinframework.app.features.compiler.ErrorMessages.InvalidDescriptor
 import it.agilelab.spinframework.app.features.compiler.ValidationResultFactory.validationResultWithErrors
 import it.agilelab.spinframework.app.features.compiler._
-import it.agilelab.spinframework.app.cloudprovider.CloudProviderStub
-import it.agilelab.spinframework.app.features.compiler.{
-  CompileService,
-  DescriptorValidator,
-  ErrorMessage,
-  Parser,
-  ParserFactory,
-  ValidationResult,
-  YamlDescriptor
-}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
@@ -20,12 +12,23 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
   val parser: Parser = ParserFactory.parser()
 
   "The unprovision service" should "return a 'completed' result" in {
-    val validator: DescriptorValidator     = descriptor => ValidationResult.create
+    val validator: DescriptorValidator     = _ => ValidationResult.create
     val compile                            = new CompileService(parser, validator)
-    val cloudProvider                      = CloudProviderStub.unprovision(desc => ProvisionResult.completed())
-    val provisionService: ProvisionService = new ProvisionService(compile, cloudProvider, null)
+    val cProvider                          = CloudProviderStub.unprovision(_ => ProvisionResult.completed())
+    val deps                               = new SynchronousSpecificProvisionerDependencies {
+      override def descriptorValidator: DescriptorValidator = validator
+
+      override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
+    }
+    val provisionService: ProvisionService = new ProvisionService(compile, deps, null)
 
     val yamlDescriptor = YamlDescriptor("""
+      dataProduct:
+        components:
+        - kind: workload
+          id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+          useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+      componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
       field1: "1"
       field2: "2"
       field3: "3"
@@ -71,10 +74,21 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
     val validator: DescriptorValidator = _ => ValidationResult.create
     val compile                        = new CompileService(parser, validator)
     val cloudProviderErrors            = Seq(ErrorMessage("some cloud error"))
-    val cloudProvider: CloudProvider   = CloudProviderStub.unprovision(_ => ProvisionResult.failure(cloudProviderErrors))
-    val provision: ProvisionService    = new ProvisionService(compile, cloudProvider, null)
+    val cProvider: CloudProvider       = CloudProviderStub.unprovision(_ => ProvisionResult.failure(cloudProviderErrors))
+    val deps                           = new SynchronousSpecificProvisionerDependencies {
+      override def descriptorValidator: DescriptorValidator = validator
+
+      override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
+    }
+    val provision: ProvisionService    = new ProvisionService(compile, deps, null)
 
     val yamlDescriptor = YamlDescriptor("""
+      dataProduct:
+        components:
+        - kind: workload
+          id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+          useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+      componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
       some-field: 1
     """)
 
@@ -82,6 +96,34 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
 
     provisionResult.isSuccessful shouldBe false
     provisionResult.errors.head shouldBe ErrorMessage("some cloud error")
+  }
+
+  "The unprovision service" should "return a failure for a descriptor without useCaseTemplateId present" in {
+    val validator: DescriptorValidator     = _ => ValidationResult.create
+    val compile                            = new CompileService(parser, validator)
+    val cProvider                          = CloudProviderStub.provision(_ => ProvisionResult.completed())
+    val deps                               = new SynchronousSpecificProvisionerDependencies {
+      override def descriptorValidator: DescriptorValidator = validator
+
+      override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
+    }
+    val provisionService: ProvisionService =
+      new ProvisionService(compile, deps, null)
+
+    val yamlDescriptor = YamlDescriptor("""
+         dataProduct:
+           components:
+             - kind: workload
+               id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+         componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+         field1: "1"
+         field2: "2"
+         field3: "3"
+      """)
+
+    val provisionResult: ProvisionResult = provisionService.doUnprovisioning(yamlDescriptor)
+
+    provisionResult.isSuccessful shouldBe false
   }
 
 }

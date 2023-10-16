@@ -99,12 +99,31 @@ Logging is handled with Logback. Customize it and pass it using the `logback.con
 
 Define your infrastructure using Terraform configuration files. These files typically have the extension .tf and are written in HashiCorp Configuration Language (HCL) or JSON format. In these files, you specify the desired state of your cloud resources, such as virtual machines, networks, databases, etc.
 
-The configuration key `datameshProvisioner.terraform.repositoryPath` must point to a folder where the complete terraform configuration is present.
+With the multi-module feature, it is possible to define multiple isolated configuration files that can be used to handle provisioning/unprovisioning of different resources:
+
+```
+datameshProvisioner {
+  ...
+  terraform {
+    moduleId1 {
+      repositoryPath: "path-for-moduleId1"
+      descriptorToVariablesMapping: {}
+    }
+    moduleId2 {
+      repositoryPath: "path-for-moduleId2"
+      descriptorToVariablesMapping: {}
+    }
+  }
+}
+```
+where `moduleId1`,`moduleId2` are the `useCaseTemplateId` of the component to manage, declared in the DP Descriptor.
+
+The configuration key `datameshProvisioner.terraform.<moduleId>.repositoryPath` must point to a folder where the complete terraform configuration is present.
 
 ### Mapping
 
 When creating terraform resources, a way to create terraform variables from the dataproduct descriptor is needed.
-The `descriptorToVariablesMapping` (defined in `datameshProvisioner.terraform`) configuration is meant for this purpose: it allows to specify a list of mappings, where each one maps a terraform key to a dataproduct descriptor value.
+The `descriptorToVariablesMapping` (defined in `datameshProvisioner.terraform.<moduleId>`) configuration is meant for this purpose: it allows to specify a list of mappings, where each one maps a terraform key to a dataproduct descriptor value.
 The dataproduct descriptor value is accessed via JsonPath, which allows full flexibility in traversing the descriptor.
 
 **Example**

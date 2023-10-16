@@ -37,7 +37,7 @@ class TerraformTimeoutTest
 
   private val terraform_repositoryPath = TestConfig
     .load("dummy-module-config.conf")
-    .getString(ConfigurationModel.terraform_repositoryPath)
+    .getString(s"${ConfigurationModel.terraform}.${ConfigurationModel.repositoryPath}")
 
   private val terraform = Terraform()
     .outputInPlainText()

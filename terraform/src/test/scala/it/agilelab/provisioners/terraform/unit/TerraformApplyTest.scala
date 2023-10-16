@@ -2,7 +2,7 @@ package it.agilelab.provisioners.terraform.unit
 
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.noLog
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformResult, TerraformVariables }
+import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformResult, TerraformVariables }
 import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ParserFactory, YamlDescriptor }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
@@ -254,12 +254,13 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
 
     val mockProcessor = new MockProcessor(0, outputString)
 
-    val terraform = Terraform()
+    val terraformBuilder = Terraform()
       .processor(mockProcessor)
       .withLogger(noLog)
-      .onDirectory("folder")
 
-    val tfProvider = new TfProvider(terraform, null)
+    val terraformModule = TerraformModule("folder", Map.empty)
+
+    val tfProvider = new TfProvider(terraformBuilder, terraformModule)
     val res        = tfProvider.provision(descriptor)
 
     res.outputs.size shouldBe 1
@@ -322,12 +323,13 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
 
     val mockProcessor = new MockProcessor(0, outputString)
 
-    val terraform = Terraform()
+    val terraformBuilder = Terraform()
       .processor(mockProcessor)
       .withLogger(noLog)
-      .onDirectory("folder")
 
-    val tfProvider = new TfProvider(terraform, null)
+    val terraformModule = TerraformModule("folder", Map.empty)
+
+    val tfProvider = new TfProvider(terraformBuilder, terraformModule)
     val res        = tfProvider.provision(descriptor)
 
     res.outputs.size shouldBe 0

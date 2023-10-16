@@ -15,8 +15,17 @@ class AsynchronousSpMockTest extends SpMockSuite {
   "The asynchronous spmock" should "accept a provision request and return its status from token" in {
     val provisionResponse: HttpResponse[String] = httpClient.post(
       endpoint = "/v1/provision",
-      request =
-        ProvisioningRequest(descriptorKind = DescriptorKind.ComponentDescriptor, descriptor = "container: somename"),
+      request = ProvisioningRequest(
+        descriptorKind = DescriptorKind.ComponentDescriptor,
+        descriptor = """
+                       |dataProduct:
+                       |  components:
+                       |    - kind: workload
+                       |      id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+                       |      useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+                       |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+                       |""".stripMargin
+      ),
       bodyClass = classOf[String]
     )
 

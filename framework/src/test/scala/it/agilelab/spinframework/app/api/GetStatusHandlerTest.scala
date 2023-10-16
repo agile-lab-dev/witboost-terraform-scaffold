@@ -63,7 +63,6 @@ class GetStatusHandlerTest extends HandlerTestBase {
       .run(
         Request(method = Method.GET, uri = uri"datamesh.specificprovisioner/v1/provision/token/status")
       )
-    val expected                   = SystemError("null")
 
     check[SystemError](response, Status.InternalServerError) shouldBe true
   }

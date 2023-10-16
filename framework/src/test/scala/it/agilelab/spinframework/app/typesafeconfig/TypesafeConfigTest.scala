@@ -30,7 +30,7 @@ class TypesafeConfigTest extends AnyFlatSpec with should.Matchers with BeforeAnd
   }
 
   it should "have the terraform configuration" in {
-    provisionerConfig.hasPath(terraform_repositoryPath) shouldBe true
+    provisionerConfig.hasPath(terraform) shouldBe true
   }
 
   it should "return the test configuration" in {

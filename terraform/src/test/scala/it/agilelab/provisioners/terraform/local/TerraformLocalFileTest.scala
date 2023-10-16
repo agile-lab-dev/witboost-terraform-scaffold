@@ -2,7 +2,7 @@ package it.agilelab.provisioners.terraform.local
 
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.logOnConsole
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformResult }
+import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformResult }
 import it.agilelab.spinframework.app.features.support.test.FrameworkTestSupport
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -41,17 +41,17 @@ class TerraformLocalFileTest extends AnyFlatSpec with TerraformLocalTestBase wit
       "file_content" -> "$.specific.file.content"
     )
   )
-  private val terraform                             = Terraform()
+  private val terraformBuilder                      = Terraform()
     .outputInPlainText()
     .withLogger(logOnConsole)
-    .onDirectory(folder("/local-file"))
+  private val tfProvider                            = new TfProvider(terraformBuilder, TerraformModule(folder("/local-file"), Map.empty))
+  private val terraform                             = tfProvider.terraformCommands
 
-  private val terraformJson = Terraform()
+  private val terraformJsonBuilder = Terraform()
     .outputInJson()
     .withLogger(logOnConsole)
-    .onDirectory(folder("/local-file"))
-
-  private val tfProvider = new TfProvider(terraform, null)
+  private val tfProviderJson       = new TfProvider(terraformJsonBuilder, TerraformModule(folder("/local-file"), Map.empty))
+  private val terraformJson        = tfProviderJson.terraformCommands
 
   "Terraform" should "create a local file" in {
     shouldNotExist(file("testfile.txt"))

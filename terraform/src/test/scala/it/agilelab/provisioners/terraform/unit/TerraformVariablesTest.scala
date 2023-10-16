@@ -1,5 +1,12 @@
 package it.agilelab.provisioners.terraform.unit
 
+import it.agilelab.provisioners.features.provider.TfProvider
+import it.agilelab.provisioners.terraform.{ Terraform, TerraformModuleLoader }
+import it.agilelab.spinframework.app.features.compiler.ComponentDescriptor
+import it.agilelab.spinframework.app.features.provision.ProvisioningStatus
+import it.agilelab.spinframework.app.features.support.test._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should
 import it.agilelab.provisioners.features.descriptor.TerraformOutputsDescriptor
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.Terraform
@@ -11,7 +18,7 @@ import org.scalatest.matchers.should
 
 class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with FrameworkTestSupport {
 
-  val descriptor: ComponentDescriptor = descriptorFrom(
+  private val descriptor: ComponentDescriptor = descriptorFrom(
     """
       |dataProduct:
       |    dataProductOwnerDisplayName: Nicolò Bidotti
@@ -236,11 +243,11 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
       |
       |""".stripMargin
   )
-  val mockProcessor                   = new MockProcessor(0, "output")
-  val terraform                       = Terraform()
+  private val mockProcessor                   = new MockProcessor(0, "output")
+  private val terraformBuilder                = Terraform()
     .processor(mockProcessor)
-    .onDirectory("folder")
-  val tfProvider                      = new TfProvider(terraform, null)
+  private val tfProvider                      =
+    new TfProvider(terraformBuilder, TerraformModuleLoader.from("urn:dmb:utm:airbyte-standard:0.0.0").getOrElse(null))
 
   "variablesFrom" should "return correct vars" in {
 

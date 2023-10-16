@@ -16,8 +16,17 @@ class SynchronousSpMockTest extends SpMockSuite {
   "The synchronous spmock" should "accept a provision request and return the provisioning status" in {
     val provisionResponse: HttpResponse[ProvisioningStatus] = httpClient.post(
       endpoint = "/v1/provision",
-      request =
-        ProvisioningRequest(descriptorKind = DescriptorKind.ComponentDescriptor, descriptor = "container: somename"),
+      request = ProvisioningRequest(
+        descriptorKind = DescriptorKind.ComponentDescriptor,
+        descriptor = """
+                       |dataProduct:
+                       |  components:
+                       |    - kind: workload
+                       |      id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+                       |      useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+                       |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+                       |""".stripMargin
+      ),
       bodyClass = classOf[ProvisioningStatus]
     )
 
@@ -28,10 +37,19 @@ class SynchronousSpMockTest extends SpMockSuite {
   "The synchronous spmock" should "accept an updateacl request and return the provisioning status" in {
 
     val refs: Vector[String] = Vector("alice", "bob")
+    val descriptor           =
+      """
+        |dataProduct:
+        |  components:
+        |    - kind: workload
+        |      id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+        |      useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+        |""".stripMargin
 
     val provisionResponse: HttpResponse[ProvisioningStatus] = httpClient.post(
       endpoint = "/v1/updateacl",
-      request = UpdateAclRequest(refs, ProvisionInfo("{}", "{}")),
+      request = UpdateAclRequest(refs, ProvisionInfo(descriptor, "{}")),
       bodyClass = classOf[ProvisioningStatus]
     )
 

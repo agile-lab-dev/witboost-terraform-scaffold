@@ -1,7 +1,7 @@
 package it.agilelab.provisioners.terraform.unit
 
 import it.agilelab.provisioners.features.provider.TfProvider
-import it.agilelab.provisioners.terraform.Terraform
+import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule }
 import it.agilelab.spinframework.app.api.generated.definitions.{ ProvisioningStatus => PSto }
 import it.agilelab.spinframework.app.features.compiler.{ ParserFactory, YamlDescriptor }
 import org.scalatest.flatspec.AnyFlatSpec
@@ -26,11 +26,11 @@ class TerraformUpdateAclTest extends AnyFlatSpec with should.Matchers {
 
     val mockProcessor = new MockProcessor(1, "")
 
-    val terraformAcl = Terraform()
+    val terraformBuilder = Terraform()
       .processor(mockProcessor)
-      .onDirectory("folder/acl")
 
-    val provider = new TfProvider(null, terraformAcl)
+    val terraformModule = TerraformModule("folder", Map.empty)
+    val provider        = new TfProvider(terraformBuilder, terraformModule)
 
     val res = provider.updateAcl(descriptor, refs)
 
@@ -62,11 +62,11 @@ class TerraformUpdateAclTest extends AnyFlatSpec with should.Matchers {
 
     val mockProcessor = new MockProcessor(0, outputString)
 
-    val terraformAcl = Terraform()
+    val terraformBuilder = Terraform()
       .processor(mockProcessor)
-      .onDirectory("folder/acl")
 
-    val provider = new TfProvider(null, terraformAcl)
+    val terraformModule = TerraformModule("folder", Map.empty)
+    val provider        = new TfProvider(terraformBuilder, terraformModule)
 
     val res = provider.updateAcl(descriptor, refs)
 
@@ -89,11 +89,11 @@ class TerraformUpdateAclTest extends AnyFlatSpec with should.Matchers {
 
     val mockProcessor = new MockProcessor(0, outputString)
 
-    val terraformAcl = Terraform()
+    val terraformBuilder = Terraform()
       .processor(mockProcessor)
-      .onDirectory("folder/acl")
 
-    val provider = new TfProvider(null, terraformAcl)
+    val terraformModule = TerraformModule("folder", Map.empty)
+    val provider        = new TfProvider(terraformBuilder, terraformModule)
 
     val res = provider.updateAcl(descriptor, refs)
 
@@ -123,12 +123,12 @@ class TerraformUpdateAclTest extends AnyFlatSpec with should.Matchers {
 
     val mockProcessor = new MockProcessor(0, outputString)
 
-    val terraformAcl = Terraform()
+    val terraformBuilder = Terraform()
       .processor(mockProcessor)
-      .onDirectory("folder/acl")
 
-    val provider = new TfProvider(null, terraformAcl)
-    val res      = provider.updateAcl(descriptor, refs)
+    val terraformModule = TerraformModule("folder", Map.empty)
+    val provider        = new TfProvider(terraformBuilder, terraformModule)
+    val res             = provider.updateAcl(descriptor, refs)
 
     res.isSuccessful shouldBe true
 

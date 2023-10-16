@@ -98,8 +98,8 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
   override def updateacl(
     respond: Resource.UpdateaclResponse.type
   )(body: UpdateAclRequest): IO[Resource.UpdateaclResponse] = IO {
-    val descriptor = JsonDescriptor(body.provisionInfo.result)
-    val result     = provision.doUpdateAcl(descriptor, body.refs.toSet)
+
+    val result = provision.doUpdateAcl(body.provisionInfo, body.refs.toSet)
     result.provisioningStatus match {
       case Running   => Resource.UpdateaclResponse.Accepted(result.componentToken.asString)
       case Completed => Resource.UpdateaclResponse.Ok(ProvisioningStatusMapper.from(result))

@@ -9,6 +9,7 @@ import it.agilelab.spinframework.app.api.generated.Resource
 import it.agilelab.spinframework.app.api.generated.definitions.{
   DescriptorKind,
   Info,
+  ProvisionInfo,
   ProvisioningRequest,
   SystemError,
   ValidationError,
@@ -26,13 +27,9 @@ import org.http4s.{ Method, Request, Response, Status }
 
 class ProvisionHandlerTest extends HandlerTestBase {
   class ProvisionStub extends Provision {
-    override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = ProvisionResult.completed()
-    override def doUnprovisioning(yaml: YamlDescriptor): ProvisionResult         = ProvisionResult.completed()
-    override def doUpdateAcl(
-      jsonDescriptor: JsonDescriptor,
-      refs: Set[String],
-      cfg: Config = provisionerConfig
-    ): ProvisionResult                                                           =
+    override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult                            = ProvisionResult.completed()
+    override def doUnprovisioning(yaml: YamlDescriptor): ProvisionResult                                    = ProvisionResult.completed()
+    override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult =
       ProvisionResult.completed()
   }
 
@@ -102,7 +99,6 @@ class ProvisionHandlerTest extends HandlerTestBase {
         Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/provision")
           .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
-    val expected                   = SystemError("error")
 
     check[SystemError](response, Status.InternalServerError) shouldBe true
   }
@@ -120,7 +116,6 @@ class ProvisionHandlerTest extends HandlerTestBase {
         Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/unprovision")
           .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
-    val expected                   = SystemError("error")
 
     check[SystemError](response, Status.InternalServerError) shouldBe true
   }

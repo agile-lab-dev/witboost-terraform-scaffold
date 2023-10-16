@@ -14,7 +14,7 @@ sealed private[app] trait SpecificProvisionerDependencies {
 
   /** Interacts with a cloud provider to provision/unprovision a component.
     */
-  def cloudProvider: CloudProvider
+  def cloudProvider(moduleId: String): Either[String, CloudProvider]
 
   /** Returns the provisioning status of a component.
     */

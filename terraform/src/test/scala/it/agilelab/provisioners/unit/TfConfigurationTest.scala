@@ -14,11 +14,4 @@ class TfConfigurationTest extends AnyFlatSpec with should.Matchers {
     provisionerConfig.getString(networking_httpServer_interface) shouldBe "0.0.0.0"
   }
 
-  it should "find the Terraform dummy module's path" in {
-    provisionerConfig.getString(terraform_repositoryPath) shouldBe "src/main/resources/terraform"
-  }
-  it should "find the terraform variables mappings" in {
-    provisionerConfig.getConfig(descriptor_mapping).entrySet().size() shouldBe 2
-  }
-
 }

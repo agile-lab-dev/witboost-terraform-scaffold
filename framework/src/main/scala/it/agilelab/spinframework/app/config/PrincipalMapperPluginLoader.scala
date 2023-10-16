@@ -40,11 +40,11 @@ class PrincipalMapperPluginLoader() {
 
   private def getSpecificConfig(mf: MapperFactory, cfg: Config): Try[Config] =
     Try {
-      cfg.getConfig(principalmapping_plugin).getConfig(mf.configIdentifier)
+      cfg.getConfig(principalMappingPlugin).getConfig(mf.configIdentifier)
     }
 
   private def extractPluginClass(cfg: Config): Try[String] =
     Try {
-      cfg.getString(principalmapping_plugin_class)
+      cfg.getString(principalMappingPluginClass)
     }
 }

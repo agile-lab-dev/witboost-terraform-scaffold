@@ -80,8 +80,17 @@ trait SpMockSuite extends AnyFlatSpec with should.Matchers with BeforeAndAfterAl
   it should "accept an unprovision request" in {
     val provisioningStatusResponse = httpClient.post(
       endpoint = "/v1/unprovision",
-      request =
-        ProvisioningRequest(descriptorKind = DescriptorKind.ComponentDescriptor, descriptor = "container: somename"),
+      request = ProvisioningRequest(
+        descriptorKind = DescriptorKind.ComponentDescriptor,
+        descriptor = """
+                       |dataProduct:
+                       |  components:
+                       |    - kind: workload
+                       |      id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+                       |      useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+                       |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+                       |""".stripMargin
+      ),
       bodyClass = classOf[ProvisioningStatus]
     )
 

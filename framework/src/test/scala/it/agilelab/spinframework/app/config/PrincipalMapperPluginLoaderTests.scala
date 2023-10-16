@@ -12,13 +12,9 @@ class PrincipalMapperPluginLoaderTests extends AnyFlatSpec with should.Matchers 
 
     val config                      = ConfigFactory.parseString(
       """
-        |terraform {
-        |    repositoryPath = "src/main/resources/terraform"
-        |    descriptorToVariablesMapping = {}
-        |    principalMappingPlugin {
-        |        pluginClass = "it.agilelab.plugin.principalsmapping.impl.identity.IdentityMapperFactory"
-        |        identity {}
-        |    }
+        |principalMappingPlugin {
+        |    pluginClass = "it.agilelab.plugin.principalsmapping.impl.identity.IdentityMapperFactory"
+        |    identity {}
         |}
         |""".stripMargin
     )
@@ -32,12 +28,8 @@ class PrincipalMapperPluginLoaderTests extends AnyFlatSpec with should.Matchers 
 
     val config = ConfigFactory.parseString(
       """
-        |terraform {
-        |    repositoryPath = "src/main/resources/terraform"
-        |    descriptorToVariablesMapping = {}
-        |    principalMappingPlugin {
-        |        pluginClass = "it.agilelab.plugin.principalsmapping.impl.identity.IdentityMapperFactory"
-        |    }
+        |principalMappingPlugin {
+        |    pluginClass = "it.agilelab.plugin.principalsmapping.impl.identity.IdentityMapperFactory"
         |}
         |""".stripMargin
     )
@@ -51,14 +43,9 @@ class PrincipalMapperPluginLoaderTests extends AnyFlatSpec with should.Matchers 
   "PrincipalMapperPluginLoader" should "fail to load if the plugin class is wrong" in {
 
     val config = ConfigFactory.parseString("""
-                                             |terraform {
-                                             |    repositoryPath = "src/main/resources/terraform"
-                                             |    descriptorToVariablesMapping = {}
-                                             |    principalMappingPlugin {
-                                             |        pluginClass = "java.lang.Thread"
-                                             |    }
+                                             |principalMappingPlugin {
+                                             |    pluginClass = "java.lang.Thread"
                                              |}
-
                                              |""".stripMargin)
 
     val principalMapperPluginLoader = new PrincipalMapperPluginLoader()

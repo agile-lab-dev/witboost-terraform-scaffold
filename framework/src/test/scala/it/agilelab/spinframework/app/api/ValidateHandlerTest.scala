@@ -60,7 +60,6 @@ class ValidateHandlerTest extends HandlerTestBase {
         Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/validate")
           .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
       )
-    val expected                   = SystemError("System Error")
 
     check[SystemError](response, Status.InternalServerError) shouldBe true
   }

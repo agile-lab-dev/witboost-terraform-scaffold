@@ -7,8 +7,8 @@ import it.agilelab.spinframework.app.features.compiler.DescriptorValidator
 import it.agilelab.spinframework.app.features.provision.CloudProvider
 
 class SynchronousMockDependencies extends SynchronousSpecificProvisionerDependencies {
-  override def descriptorValidator: DescriptorValidator = new MockDescriptorValidator
-  override def cloudProvider: CloudProvider             = new MockCloudProvider
+  override def descriptorValidator: DescriptorValidator                       = new MockDescriptorValidator
+  override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(new MockCloudProvider)
 }
 
 object SynchronousSpMock extends SpecificProvisioner {

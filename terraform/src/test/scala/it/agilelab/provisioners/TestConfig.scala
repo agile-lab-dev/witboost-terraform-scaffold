@@ -3,8 +3,6 @@ package it.agilelab.provisioners
 import com.typesafe.config.{ Config, ConfigFactory }
 import it.agilelab.spinframework.app.config.ConfigurationModel
 
-import java.io.File
-
 object TestConfig {
 
   /** Load a custom configuration to be used during tests

@@ -1,31 +1,25 @@
 package it.agilelab.provisioners.features.provider
 
-import com.fasterxml.jackson.databind.node.ArrayNode
-import com.jayway.jsonpath.Option.{ ALWAYS_RETURN_LIST, DEFAULT_PATH_LEAF_TO_NULL }
-import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider
-import com.jayway.jsonpath.{ Configuration, JsonPath, JsonPathException }
-import it.agilelab.provisioners.configuration.TfConfiguration._
 import it.agilelab.provisioners.features.descriptor.TerraformOutputsDescriptor
-import it.agilelab.provisioners.terraform.{ TerraformCommands, TerraformVariables }
+import it.agilelab.provisioners.terraform.{ TerraformBuilder, TerraformCommands, TerraformModule, TerraformVariables }
 import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ErrorMessage, TerraformOutput }
 import it.agilelab.spinframework.app.features.provision.{ CloudProvider, ProvisionResult }
+import it.agilelab.spinframework.app.utils.JsonPathUtils
 import org.slf4j.{ Logger, LoggerFactory }
+import java.nio.file.Path
 
-import scala.jdk.CollectionConverters._
-import scala.util.{ Failure, Success, Try }
+class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformModule) extends CloudProvider {
 
-class TfProvider(terraform: TerraformCommands, terraformAcl: TerraformCommands) extends CloudProvider {
+  private val terraform = terraformBuilder
+    .onDirectory(terraformModule.path)
+
+  private val terraformAcl = terraformBuilder
+    .onDirectory(Path.of(terraformModule.path, "acl").toString)
 
   private lazy val terraformInitResult    = terraform.doInit()
   private lazy val terraformAclInitResult = terraformAcl.doInit()
 
   final private val logger: Logger = LoggerFactory.getLogger(getClass.getName)
-
-  private lazy val conf: Configuration = Configuration
-    .builder()
-    .jsonProvider(new JacksonJsonNodeJsonProvider())
-    .options(ALWAYS_RETURN_LIST, DEFAULT_PATH_LEAF_TO_NULL)
-    .build()
 
   override def provision(descriptor: ComponentDescriptor): ProvisionResult = {
     if (!terraformInitResult.isSuccess)
@@ -88,12 +82,7 @@ class TfProvider(terraform: TerraformCommands, terraformAcl: TerraformCommands) 
     // e.g. resource_group_name -> component.specific.resource_group_name
     val mappings: Map[String, String] = variableMappings match {
       case None    =>
-        provisionerConfig
-          .getConfig(descriptor_mapping)
-          .entrySet()
-          .asScala
-          .map(e => e.getKey -> e.getValue.unwrapped.toString)
-          .toMap
+        terraformModule.mappings
       case Some(x) => x
     }
 
@@ -101,7 +90,7 @@ class TfProvider(terraform: TerraformCommands, terraformAcl: TerraformCommands) 
     // e.g. resource_group_name -> sample_name
     val (lefts, right) = mappings
       .map(mapping =>
-        getValue(descriptor.toString, mapping._2) match {
+        JsonPathUtils.getValue(descriptor.toString, mapping._2) match {
           case Right(r) => Right(mapping._1 -> r)
           case Left(l)  => Left(l)
         }
@@ -115,31 +104,6 @@ class TfProvider(terraform: TerraformCommands, terraformAcl: TerraformCommands) 
     }
   }
 
-  private def getValue(jsonString: String, jsonPath: String): Either[String, String] = {
-    val docContext = JsonPath.using(conf).parse(jsonString)
+  def terraformCommands: TerraformCommands = terraform
 
-    val componentId      = docContext.read[ArrayNode]("$.componentIdToProvision")
-    val jsonPathReplaced = jsonPath.replace("{{componentIdToProvision}}", componentId.get(0).asText())
-
-    val node = Try(docContext.read[ArrayNode](jsonPathReplaced))
-    node match {
-      case Success(node)                  =>
-        if (node.size() == 0 || node.get(0).isNull) {
-          Left(
-            s"Terraform variables could not be extracted from the descriptor. No results for path: $jsonPathReplaced"
-          )
-        } else {
-          Right(node.get(0).asText())
-        }
-      case Failure(ex: JsonPathException) =>
-        Left(
-          s"Terraform variables could not be extracted from the descriptor. The supplied Json Path expression ($jsonPathReplaced) is not valid: ${ex.getMessage}"
-        )
-      case Failure(ex)                    =>
-        Left(
-          s"Terraform variables could not be extracted from the descriptor. Failed to extract value from $jsonPathReplaced: ${ex.getMessage}"
-        )
-
-    }
-  }
 }

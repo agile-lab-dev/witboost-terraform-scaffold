@@ -109,7 +109,7 @@ class ValidationTest extends AnyFlatSpec with should.Matchers with FrameworkTest
     val field = SimpleField.undefined("field")
 
     val validationResult = Validation.start
-      .checkOption(field, IsValid.when(field => false).otherwise(GenericError))
+      .checkOption(field, IsValid.when(_ => false).otherwise(GenericError))
 
     shouldBeOk(validationResult)
   }
@@ -118,7 +118,7 @@ class ValidationTest extends AnyFlatSpec with should.Matchers with FrameworkTest
     val field = SimpleField.defined("field", "  ")
 
     val validationResult = Validation.start
-      .checkOption(field, IsValid.when(field => false).otherwise(GenericError))
+      .checkOption(field, IsValid.when(_ => false).otherwise(GenericError))
 
     shouldBeOk(validationResult)
   }

@@ -14,16 +14,15 @@ import it.agilelab.spinframework.app.features.status.GetStatus
 class AsynchronousMockDependencies extends AsynchronousSpecificProvisionerDependencies {
   override def descriptorValidator: DescriptorValidator = _ => Validation.start
 
-  override def cloudProvider: CloudProvider = new CloudProvider {
+  override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(new CloudProvider {
     override def provision(descriptor: ComponentDescriptor): ProvisionResult                    =
       ProvisionResult.running(ComponentToken("component-1234"))
     override def unprovision(descriptor: ComponentDescriptor): ProvisionResult                  = ProvisionResult.completed()
     override def updateAcl(descriptor: ComponentDescriptor, refs: Set[String]): ProvisionResult =
       ProvisionResult.completed()
-  }
+  })
 
   override def getStatus: GetStatus = _ => ProvisioningStatus.Completed
-
 }
 
 object AsynchronousSpMock extends SpecificProvisioner {

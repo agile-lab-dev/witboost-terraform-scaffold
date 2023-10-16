@@ -3,7 +3,7 @@ package it.agilelab.provisioners.terraform.local
 import it.agilelab.provisioners.TestConfig
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.logOnConsole
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformResult }
+import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformResult }
 import it.agilelab.spinframework.app.config.{ ConfigurationModel => CM }
 import it.agilelab.spinframework.app.features.support.test.FrameworkTestSupport
 import org.scalatest.flatspec.AnyFlatSpec
@@ -25,7 +25,7 @@ class TerraformDummyTest extends AnyFlatSpec with TerraformLocalTestBase with Fr
 
   private val terraform_repositoryPath = TestConfig
     .load("dummy-module-config.conf")
-    .getString(CM.terraform_repositoryPath)
+    .getString(s"${CM.terraform}.${CM.repositoryPath}")
 
   private val descriptor = descriptorFrom("""
        specific:
@@ -41,17 +41,18 @@ class TerraformDummyTest extends AnyFlatSpec with TerraformLocalTestBase with Fr
     )
   )
 
-  private val terraform = Terraform()
+  private val terraformBuilder = Terraform()
     .outputInPlainText()
     .withLogger(logOnConsole)
-    .onDirectory(terraform_repositoryPath)
+  private val tfProvider       = new TfProvider(terraformBuilder, TerraformModule(terraform_repositoryPath, Map.empty))
+  private val terraform        = tfProvider.terraformCommands
 
-  private val terraformJson = Terraform()
+  private val terraformJsonBuilder = Terraform()
     .outputInJson()
     .withLogger(logOnConsole)
-    .onDirectory(terraform_repositoryPath)
-
-  val tfProvider = new TfProvider(terraform, null)
+  private val tfProviderJson       =
+    new TfProvider(terraformJsonBuilder, TerraformModule(terraform_repositoryPath, Map.empty))
+  private val terraformJson        = tfProviderJson.terraformCommands
 
   "Terraform" should "generate a random string" in {
 
