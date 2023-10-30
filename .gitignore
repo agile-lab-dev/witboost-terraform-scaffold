@@ -141,3 +141,6 @@ azure-credentials.txt
 terraform.tfstate
 terraform.tfstate.backup
 .terraform.lock.hcl
+
+# Helm
+helm/charts

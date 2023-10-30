@@ -1,4 +1,11 @@
+include:
+  - project: 'AgileFactory/Witboost.Mesh/witboost.Mesh.CI'
+    ref: 'main'
+    file: 'common/witboost.helm.gitlab-ci.yml'
+  - template: Security/SAST.gitlab-ci.yml
+
 stages:
+  - setup
   - checkFormatting
   - test
   - build
@@ -22,21 +29,40 @@ stages:
       - project/target/
       - project/project/
 
-# sast jobs
-include:
-  - template: Security/SAST.gitlab-ci.yml
+setup:
+  stage: setup
+  extends: .witboost.helm.base-job
+  cache: []
+  before_script: []
+  script:
+    - !reference [.witboost.helm.clone-scripts, script]
+    - !reference [.witboost.helm.get-version, script]
+    - echo "VERSION=${VERSION}" >> vars.env
+  artifacts:
+    reports:
+      dotenv: vars.env
+
+witboost.helm.checks:
+  stage: checkFormatting
+  extends: .witboost.helm.base-job
+  before_script: []
+  cache: []
+  script:
+    - !reference [.witboost.helm.clone-scripts, script]
+    - !reference [.witboost.helm.checks, script]
+  variables:
+    CHART_FOLDER: helm
+
 
 checkFormatting:
   stage: checkFormatting
   extends: .sbtBase
-  needs: []
   script:
     - 'sbt scalafmtSbtCheck scalafmtCheck'
 
 test:
   stage: test
   extends: .sbtBase
-  needs: []
   before_script:
     - wget https://releases.hashicorp.com/terraform/1.4.4/terraform_1.4.4_linux_amd64.zip
     - apt-get update
@@ -75,8 +101,20 @@ docker:
   services:
     - docker:20.10.16-dind
   variables:
-    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$VERSION
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $IMAGE_TAG .
     - docker push $IMAGE_TAG
+
+witboost.helm.deploy:
+  stage: publish
+  before_script: []
+  cache: []
+  extends: .witboost.helm.deploy
+  needs:
+  - docker
+  only:
+    - master
+    - tags
+    - /(^release\/([0-9]+)\.([0-9]+))/

@@ -79,7 +79,7 @@ docker build -t <IMAGE TAG> .
 
 **CI/CD:** the pipeline is based on GitLab CI as that's what we use internally. It's configured by the `.gitlab-ci.yaml` file in the root of the repository. You can use that as a starting point for your customizations.
 
-## Running
+## Running locally
 
 To run the server locally, use:
 
@@ -89,11 +89,21 @@ sbt compile run
 
 By default, the server binds to port 8080 on localhost. After it's up and running you can make provisioning requests to this address.
 
+
+## Running on k8s
+
+This repo provides a helm chart used to deploy the Terraform provisioner on a Kubernetes cluster.
+More details about how to configure and run it are in the helm [README.md](helm/README.md).
+
 ## Configuring
 
 Most application configurations are handled with the Typesafe Config library. You can find the default settings in the `reference.conf`. Customize them and use the `config.file` system property or the other options provided by Typesafe Config according to your needs. The provided docker image expects the config file mounted at path `/config/application.conf`.
 
 Logging is handled with Logback. Customize it and pass it using the `logback.configurationFile` system property. The provided docker image expects the logging config file mounted at path `/config/logback.xml`.
+
+If you are deploying this provisioner with [helm](/helm), there are two places for these config files:
+- values.yaml : in the values.yaml specific to your environment, you have the possibility to provide the configurations via `configOverride` and `lockbackOverride` keys. This is the preferred approach.
+- [helm/files](/helm/files): contains the default values, they are not supposed to be changed by the user
 
 ### Terraform configuration
 

@@ -1,0 +1,49 @@
+{{ template "chart.header" . }}
+
+{{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
+
+{{ template "chart.description" . }}
+
+
+{{ template "chart.maintainersHeader" . }}
+
+{{ template "chart.maintainersTable" . }}
+
+## Installing the Chart
+
+The chart depends on the `tf-config` configmap, which is expected to contain a `tf.tar` archive.
+This archive is expected to contain N folders, each one containing the terraform configuration of each module.
+
+*Archive example structure*
+```
+.
+└── module1
+    ├── acl
+    │   └── ...
+    ├── main.tf
+    ├── outputs.tf
+    ├── provider.tf
+    └── variables.tf
+```
+
+First step is to create the configmap:
+
+```bash
+# Package tf configs
+tar -cvf tf.tar -C tf .
+# Create configmap
+kubectl create configmap tf-config --from-file=tf.tar
+```
+
+To install the chart with the release name `my-release`:
+
+```console
+$ helm repo add foo-bar http://charts.foo-bar.com
+$ helm install my-release foo-bar/{{ template "chart.name" . }}
+```
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
+{{ template "helm-docs.versionFooter" . }}
