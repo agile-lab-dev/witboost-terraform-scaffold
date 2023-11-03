@@ -36,4 +36,46 @@ class TerraformModuleLoaderTest extends AnyFlatSpec with should.Matchers with Ei
     eitherModule.isLeft shouldBe true
   }
 
+  "TerraformModuleLoader" should "fail for missing backendConfig" in {
+    val moduleId = "urn:dmb:utm:airbyte-standard:1.0.0"
+
+    val eitherModule = TerraformModuleLoader.from(moduleId)
+
+    eitherModule.isLeft shouldBe true
+    eitherModule.left.getOrElse(null) should include("backendConfigs.configs is not existent")
+
+  }
+
+  "TerraformModuleLoader" should "return extract backend configs" in {
+    val moduleId = "urn:dmb:utm:airbyte-standard:2.0.0"
+
+    val eitherModule = TerraformModuleLoader.from(moduleId)
+
+    eitherModule.isLeft shouldBe false
+    eitherModule.value.backendConfigs.size shouldBe 3
+    eitherModule.value.backendConfigs.keys should contain allOf ("foo", "bar")
+    eitherModule.value.backendConfigs.values should contain allOf ("$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].specific.abc", "$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].specific.def")
+  }
+
+  "TerraformModuleLoader" should "fail for missing state key" in {
+    val moduleId = "urn:dmb:utm:airbyte-standard:3.0.0"
+
+    val eitherModule = TerraformModuleLoader.from(moduleId)
+
+    eitherModule.isLeft shouldBe true
+    eitherModule.left.getOrElse(null) should include("backendConfigs.stateKey is not existent")
+
+  }
+
+  "TerraformModuleLoader" should "Fail for inconsistent key and config" in {
+    val moduleId = "urn:dmb:utm:airbyte-standard:3.0.1"
+
+    val eitherModule = TerraformModuleLoader.from(moduleId)
+
+    eitherModule.isLeft shouldBe true
+    eitherModule.left.getOrElse(null) should include(
+      "The configured state key backendConfigs.stateKey doesn't match any item"
+    )
+  }
+
 }

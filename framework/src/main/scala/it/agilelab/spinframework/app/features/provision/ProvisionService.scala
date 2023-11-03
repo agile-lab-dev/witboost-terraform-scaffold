@@ -84,7 +84,7 @@ class ProvisionService(
                 )
               case (_, r)               =>
                 val principals = r.map(_._2.getOrElse(null)).toSet
-                cloudProvider.updateAcl(jsonResult.descriptor, principals)
+                cloudProvider.updateAcl(jsonResult.descriptor, yamlResult.descriptor, principals)
             }
           case Failure(f) =>
             logger.error("Error in doUpdateAcl", f)

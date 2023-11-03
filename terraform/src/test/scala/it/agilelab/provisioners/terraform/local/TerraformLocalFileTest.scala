@@ -2,7 +2,7 @@ package it.agilelab.provisioners.terraform.local
 
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.logOnConsole
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformResult }
+import it.agilelab.provisioners.terraform.{ BackendConfigs, Terraform, TerraformModule, TerraformResult }
 import it.agilelab.spinframework.app.features.support.test.FrameworkTestSupport
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -41,17 +41,19 @@ class TerraformLocalFileTest extends AnyFlatSpec with TerraformLocalTestBase wit
       "file_content" -> "$.specific.file.content"
     )
   )
-  private val terraformBuilder                      = Terraform()
+
+  private val terraformBuilder = Terraform()
     .outputInPlainText()
     .withLogger(logOnConsole)
-  private val tfProvider                            = new TfProvider(terraformBuilder, TerraformModule(folder("/local-file"), Map.empty))
-  private val terraform                             = tfProvider.terraformCommands
+  private val folderPath       = folder("/local-file")
+  private val tfProvider       =
+    new TfProvider(terraformBuilder, TerraformModule(folderPath, Map.empty, Map.empty, ""))
+  private val terraform        = terraformBuilder.onDirectory(folderPath)
 
   private val terraformJsonBuilder = Terraform()
     .outputInJson()
     .withLogger(logOnConsole)
-  private val tfProviderJson       = new TfProvider(terraformJsonBuilder, TerraformModule(folder("/local-file"), Map.empty))
-  private val terraformJson        = tfProviderJson.terraformCommands
+  private val terraformJson        = terraformJsonBuilder.onDirectory(folderPath)
 
   "Terraform" should "create a local file" in {
     shouldNotExist(file("testfile.txt"))
@@ -61,7 +63,9 @@ class TerraformLocalFileTest extends AnyFlatSpec with TerraformLocalTestBase wit
       case Left(l)  => fail(l.mkString("\n"))
     }
 
-    val initResult = terraform.doInit()
+    val backendConfigs = BackendConfigs.configs(("foo" -> "bar"))
+
+    val initResult = terraform.doInit(backendConfigs)
     shouldBeSuccess(initResult, "Terraform has been successfully initialized!")
 
     val validateResult: TerraformResult = terraform.doValidate()
@@ -88,7 +92,7 @@ class TerraformLocalFileTest extends AnyFlatSpec with TerraformLocalTestBase wit
 
     shouldNotExist(file("testfile.txt"))
 
-    val initResultJson: TerraformResult = terraformJson.doInit()
+    val initResultJson: TerraformResult = terraformJson.doInit(BackendConfigs.noConfig())
     shouldBeSuccess(initResultJson)
 
     val validateResultJson: TerraformResult = terraformJson.doValidate()

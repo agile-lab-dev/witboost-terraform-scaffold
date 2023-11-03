@@ -11,15 +11,3 @@ resource "azurerm_storage_account" "st_account" {
   account_kind             = "StorageV2"
   is_hns_enabled           = "true"
 }
-
-resource "azurerm_storage_data_lake_gen2_filesystem" "filesystem" {
-  name               = var.filesystem_name
-  storage_account_id = azurerm_storage_account.st_account.id
-}
-
-resource "azurerm_storage_data_lake_gen2_path" "path" {
-  storage_account_id = azurerm_storage_account.st_account.id
-  filesystem_name = azurerm_storage_data_lake_gen2_filesystem.filesystem.name
-  path = var.path
-  resource = "directory"
-}

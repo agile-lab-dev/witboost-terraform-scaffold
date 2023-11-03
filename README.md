@@ -205,6 +205,56 @@ The following var would be produced:
 State management in Terraform is a critical aspect of its functionality, as it helps Terraform keep track of the current state of your infrastructure and enables it to make informed decisions about what changes need to be applied to achieve the desired infrastructure configuration. Terraform uses a state file to store information about the resources it manages, such as their current state, resource dependencies, and metadata.
 
 Each configured module must handle its own state management, making sure to appropriately segregate DP components with a reasonable `state key` to avoid collisions and use a fault-tolerant and lockable `state store` (remote backends, such as Amazon S3, Azure Blob Storage, or HashiCorp Consul, are a good fit as they provide also better collaboration and security).
+In order to dynamically set the `state key`, refer to the [Backend configurations](#backend-configurations) chapter. 
+
+It is important to notice that the backend configurations will be shared among the `main` and `acl` module. Since those two module must use separate state file, they cannot share the same state key. 
+For this reason, we preventively append the ".acl" suffix to the rendered state key.
+
+#### Backend configurations
+
+In order to make the backend configuration dynamic, the `backendConfigs` block allow you to set [backend configurations](https://developer.hashicorp.com/terraform/language/settings/backends/configuration#command-line-key-value-pairs). 
+This block requires two object:
+- `configs`: is a map that allows specifying key/value pairs, where keys will be the backendConfigs keys, while values will be processed as JsonPath, exactly as in the `descriptorToVariablesMapping` block.
+- `stateKey`: is the string that identifies, in the `configs` map, the key corresponding to the state key. Since the stateKey can have different names depending on the provider (common names are "key" and "prefix") we cannot guess it. Since we need to apply further processing on it, we must know which one is the key.
+
+Given the following descriptor:
+```yaml
+dataProduct:
+  name: xys-12345
+  components:
+    - id: comp1
+      specific:
+        foo1: bar1
+    - id: comp2
+      specific:
+        foo2: bar2
+        resourceGroup: zoo
+  componentIdToProvision: comp2
+```
+
+and the following configuration snippet
+
+```
+backendConfigs = {
+    stateKey = "key"
+    configs = {
+      key = "$.dataProduct.name"
+      foo = "$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].specific.resourceGroup"
+    }
+  }
+```
+
+The following command would be produced for the main module:
+
+```terraform
+terraform init [...] -backend-config="key=xys-12345" -backend-config="foo=zoo"
+```
+
+The following command would be produced for the acl module:
+```terraform
+terraform init [...] -backend-config="key=xys-12345.acl" -backend-config="foo=zoo"
+```
+
 
 ### UpdateACL
 

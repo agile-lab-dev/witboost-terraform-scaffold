@@ -3,7 +3,7 @@ package it.agilelab.provisioners.terraform.local
 import it.agilelab.provisioners.TestConfig
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.logOnConsole
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformResult }
+import it.agilelab.provisioners.terraform.{ BackendConfigs, Terraform, TerraformModule, TerraformResult }
 import it.agilelab.spinframework.app.config.{ ConfigurationModel => CM }
 import it.agilelab.spinframework.app.features.support.test.FrameworkTestSupport
 import org.scalatest.flatspec.AnyFlatSpec
@@ -44,15 +44,16 @@ class TerraformDummyTest extends AnyFlatSpec with TerraformLocalTestBase with Fr
   private val terraformBuilder = Terraform()
     .outputInPlainText()
     .withLogger(logOnConsole)
-  private val tfProvider       = new TfProvider(terraformBuilder, TerraformModule(terraform_repositoryPath, Map.empty))
-  private val terraform        = tfProvider.terraformCommands
+  private val tfProvider       =
+    new TfProvider(terraformBuilder, TerraformModule(terraform_repositoryPath, Map.empty, Map.empty, ""))
+  private val terraform        = terraformBuilder.onDirectory(terraform_repositoryPath)
 
   private val terraformJsonBuilder = Terraform()
     .outputInJson()
     .withLogger(logOnConsole)
   private val tfProviderJson       =
-    new TfProvider(terraformJsonBuilder, TerraformModule(terraform_repositoryPath, Map.empty))
-  private val terraformJson        = tfProviderJson.terraformCommands
+    new TfProvider(terraformJsonBuilder, TerraformModule(terraform_repositoryPath, Map.empty, Map.empty, ""))
+  private val terraformJson        = terraformBuilder.onDirectory(terraform_repositoryPath)
 
   "Terraform" should "generate a random string" in {
 
@@ -61,7 +62,7 @@ class TerraformDummyTest extends AnyFlatSpec with TerraformLocalTestBase with Fr
       case Left(l)  => fail(l.mkString("\n"))
     }
 
-    val initResult: TerraformResult = terraform.doInit()
+    val initResult: TerraformResult = terraform.doInit(BackendConfigs.noConfig())
     shouldBeSuccess(initResult, "Terraform has been successfully initialized!")
 
     val validateResult: TerraformResult = terraform.doValidate()
@@ -84,7 +85,7 @@ class TerraformDummyTest extends AnyFlatSpec with TerraformLocalTestBase with Fr
       case Left(l)  => fail(l.mkString("\n"))
     }
 
-    val initResultJson: TerraformResult = terraformJson.doInit()
+    val initResultJson: TerraformResult = terraformJson.doInit(BackendConfigs.noConfig())
     shouldBeSuccess(initResultJson)
 
     val validateResultJson: TerraformResult = terraformJson.doValidate()

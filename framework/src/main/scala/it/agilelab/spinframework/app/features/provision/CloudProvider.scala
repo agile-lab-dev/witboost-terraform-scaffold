@@ -31,5 +31,9 @@ trait CloudProvider {
     * @param refs is the list of subjects received by the provisioning coordinator
     * @return the state of the operation
     */
-  def updateAcl(descriptor: ComponentDescriptor, refs: Set[String]): ProvisionResult
+  def updateAcl(
+    resultDescriptor: ComponentDescriptor,
+    requestDescriptor: ComponentDescriptor,
+    refs: Set[String]
+  ): ProvisionResult
 }

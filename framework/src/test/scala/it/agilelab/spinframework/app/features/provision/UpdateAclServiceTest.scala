@@ -15,7 +15,7 @@ class UpdateAclServiceTest extends AnyFlatSpec with should.Matchers {
 
     val validator: DescriptorValidator     = _ => ValidationResult.create
     val compile                            = new CompileService(parser, validator)
-    val cProvider                          = CloudProviderStub.updateAcl((_, _) => ProvisionResult.completed())
+    val cProvider                          = CloudProviderStub.updateAcl((_, _, _) => ProvisionResult.completed())
     val principalMapperPluginLoader        = new PrincipalMapperPluginLoader()
     val deps                               = new SynchronousSpecificProvisionerDependencies {
       override def descriptorValidator: DescriptorValidator = validator
@@ -59,7 +59,7 @@ class UpdateAclServiceTest extends AnyFlatSpec with should.Matchers {
 
     val validator: DescriptorValidator     = _ => ValidationResult.create
     val compile                            = new CompileService(parser, validator)
-    val cProvider                          = CloudProviderStub.updateAcl((_, _) => ProvisionResult.completed())
+    val cProvider                          = CloudProviderStub.updateAcl((_, _, _) => ProvisionResult.completed())
     val principalMapperPluginLoader        =
       new PrincipalMapperPluginLoader()
     val deps                               = new SynchronousSpecificProvisionerDependencies {
@@ -102,7 +102,7 @@ class UpdateAclServiceTest extends AnyFlatSpec with should.Matchers {
 
     val validator: DescriptorValidator     = _ => ValidationResult.create
     val compile                            = new CompileService(parser, validator)
-    val cProvider                          = CloudProviderStub.updateAcl((_, _) => ProvisionResult.completed())
+    val cProvider                          = CloudProviderStub.updateAcl((_, _, _) => ProvisionResult.completed())
     val principalMapperPluginLoader        = new PrincipalMapperPluginLoader()
     val deps                               = new SynchronousSpecificProvisionerDependencies {
       override def descriptorValidator: DescriptorValidator = validator

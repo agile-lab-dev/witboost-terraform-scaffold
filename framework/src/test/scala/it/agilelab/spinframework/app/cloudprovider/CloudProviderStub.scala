@@ -5,7 +5,7 @@ import it.agilelab.spinframework.app.features.provision.{ CloudProvider, Provisi
 
 object CloudProviderStub {
   type ProvisionFunction = ComponentDescriptor => ProvisionResult
-  type UpdateAclFcuntion = (ComponentDescriptor, Set[String]) => ProvisionResult
+  type UpdateAclFcuntion = (ComponentDescriptor, ComponentDescriptor, Set[String]) => ProvisionResult
 
   def provision(function: ProvisionFunction): CloudProviderStub   = new CloudProviderStub {
     override def provision(descriptor: ComponentDescriptor): ProvisionResult = function.apply(descriptor)
@@ -14,8 +14,12 @@ object CloudProviderStub {
     override def unprovision(descriptor: ComponentDescriptor): ProvisionResult = function.apply(descriptor)
   }
   def updateAcl(function: UpdateAclFcuntion): CloudProviderStub   = new CloudProviderStub {
-    override def updateAcl(descriptor: ComponentDescriptor, refs: Set[String]): ProvisionResult =
-      function.apply(descriptor, refs)
+    override def updateAcl(
+      resultDescriptor: ComponentDescriptor,
+      requestDescriptor: ComponentDescriptor,
+      refs: Set[String]
+    ): ProvisionResult =
+      function.apply(resultDescriptor, requestDescriptor, refs)
   }
 
   def alwaysReturnCompleted: CloudProviderStub = new CloudProviderStub {
@@ -25,8 +29,12 @@ object CloudProviderStub {
 }
 
 class CloudProviderStub extends CloudProvider {
-  override def provision(descriptor: ComponentDescriptor): ProvisionResult                    = throw new UnsupportedOperationException
-  override def unprovision(descriptor: ComponentDescriptor): ProvisionResult                  = throw new UnsupportedOperationException
-  override def updateAcl(descriptor: ComponentDescriptor, refs: Set[String]): ProvisionResult =
+  override def provision(descriptor: ComponentDescriptor): ProvisionResult   = throw new UnsupportedOperationException
+  override def unprovision(descriptor: ComponentDescriptor): ProvisionResult = throw new UnsupportedOperationException
+  override def updateAcl(
+    resultDescriptor: ComponentDescriptor,
+    requestDescriptor: ComponentDescriptor,
+    refs: Set[String]
+  ): ProvisionResult                                                         =
     throw new UnsupportedOperationException
 }

@@ -7,7 +7,11 @@ import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, Pa
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
+import java.nio.file.Files
+
 class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
+
+  val tempFolder = Files.createTempDirectory("tmp-")
 
   "Terraform" should "perform apply" in {
     val outputString = "Apply complete!"
@@ -16,13 +20,13 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
 
     val terraform = Terraform()
       .processor(mockProcessor)
-      .onDirectory("folder")
+      .onDirectory(tempFolder.toString)
 
     val result: TerraformResult = terraform.doApply()
 
     result.isSuccess shouldBe true
     result.buildOutputString shouldBe outputString
-    mockProcessor.command should include("terraform -chdir=folder apply")
+    mockProcessor.command should include(s"terraform -chdir=${tempFolder} apply")
   }
 
   "Terraform" should "perform apply with variables" in {
@@ -31,7 +35,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
 
     val terraform = Terraform()
       .processor(mockProcessor)
-      .onDirectory("folder")
+      .onDirectory(tempFolder.toString)
 
     terraform.doApply(
       TerraformVariables.variables(
@@ -40,7 +44,9 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
       )
     )
 
-    mockProcessor.command should include("terraform -chdir=folder apply -var var1=\"value1\" -var var2=\"value2\"")
+    mockProcessor.command should include(
+      s"""terraform -chdir=${tempFolder} apply -var var1="value1" -var var2="value2""""
+    )
   }
 
   "Terraform" should "perform apply and report an error" in {
@@ -48,7 +54,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
 
     val terraform = Terraform()
       .processor(mockProcessor)
-      .onDirectory("folder")
+      .onDirectory(tempFolder.toString)
 
     val result: TerraformResult = terraform.doApply()
 
@@ -117,7 +123,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val terraform = Terraform()
       .processor(mockProcessor)
       .outputInJson()
-      .onDirectory("folder")
+      .onDirectory(tempFolder.toString)
 
     val result: TerraformResult = terraform.doApply()
 
@@ -148,7 +154,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val terraform = Terraform()
       .processor(mockProcessor)
       .outputInJson()
-      .onDirectory("folder")
+      .onDirectory(tempFolder.toString)
 
     terraform.doApply()
 
@@ -162,7 +168,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val terraform = Terraform()
       .processor(mockProcessor)
       .outputInPlainText()
-      .onDirectory("folder")
+      .onDirectory(tempFolder.toString)
 
     terraform.doApply()
 
@@ -177,7 +183,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val terraform = Terraform()
       .processor(mockProcessor)
       .withLogger(mockLogger)
-      .onDirectory("folder")
+      .onDirectory(tempFolder.toString)
 
     terraform.doApply()
 
@@ -192,7 +198,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val terraform = Terraform()
       .processor(mockProcessor)
       .withLogger(noLog)
-      .onDirectory("folder")
+      .onDirectory(tempFolder.toString)
 
     terraform.doApply()
 
@@ -258,10 +264,11 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
       .processor(mockProcessor)
       .withLogger(noLog)
 
-    val terraformModule = TerraformModule("folder", Map.empty)
+    val terraformModule =
+      TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.dataProductOwnerDisplayName"), "key")
 
-    val tfProvider = new TfProvider(terraformBuilder, terraformModule)
-    val res        = tfProvider.provision(descriptor)
+    val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
+    val res             = tfProvider.provision(descriptor)
 
     res.outputs.size shouldBe 1
     res.outputs.head.name shouldBe "fiz"
@@ -327,12 +334,79 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
       .processor(mockProcessor)
       .withLogger(noLog)
 
-    val terraformModule = TerraformModule("folder", Map.empty)
+    val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map.empty, "")
 
     val tfProvider = new TfProvider(terraformBuilder, terraformModule)
     val res        = tfProvider.provision(descriptor)
 
     res.outputs.size shouldBe 0
+
+  }
+
+  "Terraform" should "fail for non-existing folder" in {
+
+    val outputString =
+      """
+        |{
+        |  "@level":"info",
+        |  "@message":"Outputs: 2",
+        |  "@module":"terraform.ui",
+        |  "@timestamp":"2023-09-04T14:19:04.774029+02:00",
+        |  "outputs":{
+        |	   "foo":{
+        |      "sensitive":true,
+        |      "type":"string",
+        |      "value":"bar"
+        |    },
+        |	   "fiz":{
+        |        "type":"string",
+        |        "value":"biz"
+        |    }
+        |	 },
+        |  "type":"outputs"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Nicolò Bidotti
+        |    intField: 33
+        |    doubleField: 33.9
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+        |        description: Output Port for vaccinations data using Hasura
+        |        name: Hasura Output Port
+        |        fullyQualifiedName: Hasura Output Port
+        |        dataContract:
+        |          schema:
+        |            - name: date
+        |              dataType: DATE
+        |            - name: location_key
+        |              dataType: TEXT
+        |              constraint: PRIMARY_KEY
+        |        specific:
+        |            customTableName: healthcare_vaccinationsnb_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+
+    val mockProcessor = new MockProcessor(0, outputString)
+
+    val terraformBuilder = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+
+    val terraformModule = TerraformModule("doesnt-exist", Map.empty, Map.empty, "")
+
+    val tfProvider = new TfProvider(terraformBuilder, terraformModule)
+    val res        = tfProvider.provision(descriptor)
+
+    res.isSuccessful shouldBe false
 
   }
 

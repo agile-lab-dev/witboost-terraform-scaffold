@@ -1,8 +1,10 @@
 package it.agilelab.provisioners.terraform.unit
 
+import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.noLog
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformResult, TerraformVariables }
+import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformResult, TerraformVariables }
 import it.agilelab.provisioners.terraform.TerraformVariables.noVariable
+import it.agilelab.spinframework.app.features.compiler.{ ParserFactory, YamlDescriptor }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
@@ -167,6 +169,24 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers {
     terraform.doDestroy(noVariable())
 
     mockLogger.lastLine shouldBe empty
+  }
+
+  "Terraform" should "fail to destroy because of non existing folder" in {
+    val outputString  = "Destroy complete!"
+    val mockProcessor = new MockProcessor(0, outputString)
+    val mockLogger    = new MockLogger
+
+    val terraformBuilder = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+
+    val parser          = ParserFactory.parser()
+    val terraformModule = TerraformModule("doesnt-exist", Map.empty, Map.empty, "")
+    val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
+    val res             = tfProvider.unprovision(YamlDescriptor("").parse(parser).descriptor)
+
+    res.isSuccessful shouldBe false
+
   }
 
 }

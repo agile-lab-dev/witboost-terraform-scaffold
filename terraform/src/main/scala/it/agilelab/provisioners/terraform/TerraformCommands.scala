@@ -8,9 +8,11 @@ trait TerraformCommands {
 
   /** Performs a 'terraform init'.
     *
+    * @param configs an instance of BackendConfigs to specify backend configurations.
+    *                The default value is 'no backend configs'
     * @return the command result.
     */
-  def doInit(): TerraformResult
+  def doInit(configs: BackendConfigs): TerraformResult
 
   /** Performs a 'terraform plan'.
     *

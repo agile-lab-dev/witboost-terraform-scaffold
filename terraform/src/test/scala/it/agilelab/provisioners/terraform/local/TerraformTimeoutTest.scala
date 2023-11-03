@@ -4,7 +4,7 @@ import it.agilelab.provisioners.TestConfig
 import it.agilelab.provisioners.terraform.TerraformLogger.logOnConsole
 import it.agilelab.spinframework.app.config.ConfigurationModel
 import it.agilelab.spinframework.app.features.support.test.FrameworkTestSupport
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformResult, TerraformVariables }
+import it.agilelab.provisioners.terraform.{ BackendConfigs, Terraform, TerraformResult, TerraformVariables }
 import org.scalatest.Assertion
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.flatspec.AnyFlatSpec
@@ -79,7 +79,7 @@ class TerraformTimeoutTest
   private val LENGTH_ERROR: String = "\"length\" is not set"
 
   "Terraform" should "perform init and validate correctly" in {
-    val initResult = terraform.doInit()
+    val initResult = terraform.doInit(BackendConfigs.noConfig())
     shouldBeSuccess(initResult, "Terraform has been successfully initialized!")
 
     val validateResult: TerraformResult = terraform.doValidate()
@@ -87,7 +87,7 @@ class TerraformTimeoutTest
   }
 
   "Terraform" should "perform init and validate correctly using -json option" in {
-    val initResultJson = terraformJson.doInit()
+    val initResultJson = terraformJson.doInit(BackendConfigs.noConfig())
     shouldBeSuccess(initResultJson)
 
     val validateResultJson: TerraformResult = terraformJson.doValidate()

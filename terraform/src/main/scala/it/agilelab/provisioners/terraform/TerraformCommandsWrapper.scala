@@ -25,8 +25,10 @@ private[terraform] class TerraformCommandsWrapper(
   override def doPlan(vars: TerraformVariables): TerraformResult =
     run(s"terraform -chdir=$directory plan ${vars.toOptions} $jsonOption $inputOption")
 
-  override def doInit(): TerraformResult =
-    run(s"terraform -chdir=$directory init") // N.B. this command does not allow the -json option.
+  override def doInit(configs: BackendConfigs): TerraformResult =
+    run(
+      s"terraform -chdir=$directory init -reconfigure ${configs.toOptions}"
+    ) // N.B. this command does not allow the -json option.
 
   override def doValidate(): TerraformResult =
     run(s"terraform -chdir=$directory validate $jsonOption")

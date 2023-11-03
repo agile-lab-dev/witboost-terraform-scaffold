@@ -1,7 +1,7 @@
 package it.agilelab.provisioners.terraform.unit
 
 import it.agilelab.provisioners.terraform.TerraformLogger.noLog
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformResult }
+import it.agilelab.provisioners.terraform.{ BackendConfigs, Terraform, TerraformResult }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
@@ -15,7 +15,7 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
       .processor(mockProcessor)
       .onDirectory("folder")
 
-    val result: TerraformResult = terraform.doInit()
+    val result: TerraformResult = terraform.doInit(BackendConfigs.noConfig())
 
     result.isSuccess shouldBe true
     result.buildOutputString shouldBe outputString
@@ -29,7 +29,7 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
       .processor(mockProcessor)
       .onDirectory("folder")
 
-    val result: TerraformResult = terraform.doInit()
+    val result: TerraformResult = terraform.doInit(BackendConfigs.noConfig())
 
     result.isSuccess shouldBe false
     result.buildOutputString shouldBe "error"
@@ -43,7 +43,7 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
       .outputInJson()
       .onDirectory("folder")
 
-    val result: TerraformResult = terraform.doInit()
+    val result: TerraformResult = terraform.doInit(BackendConfigs.noConfig())
 
     result.isSuccess shouldBe false
     result.errorMessages.size should be > 0
@@ -58,7 +58,7 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
       .outputInJson()
       .onDirectory("folder")
 
-    terraform.doInit()
+    terraform.doInit(BackendConfigs.noConfig())
 
     mockProcessor.command should not include "-json"
   }
@@ -71,7 +71,7 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
       .outputInPlainText()
       .onDirectory("folder")
 
-    terraform.doInit()
+    terraform.doInit(BackendConfigs.noConfig())
 
     mockProcessor.command should not include "-json"
   }
@@ -86,7 +86,7 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
       .withLogger(mockLogger)
       .onDirectory("folder")
 
-    terraform.doInit()
+    terraform.doInit(BackendConfigs.noConfig())
 
     mockLogger.lastLine shouldBe outputString
   }
@@ -101,9 +101,25 @@ class TerraformInitTest extends AnyFlatSpec with should.Matchers {
       .withLogger(noLog)
       .onDirectory("folder")
 
-    terraform.doInit()
+    terraform.doInit(BackendConfigs.noConfig())
 
     mockLogger.lastLine shouldBe empty
+  }
+
+  "Terraform" should "perform init with -backend-config parameter" in {
+    val outputString  = "Terraform has been successfully initialized!"
+    val mockProcessor = new MockProcessor(0, outputString)
+    val mockLogger    = new MockLogger
+
+    val terraform = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+      .onDirectory("folder")
+
+    terraform.doInit(BackendConfigs.configs(("foo" -> "bar")))
+
+    mockProcessor.command should include("-backend-config=\"foo=bar\"")
+
   }
 
 }
