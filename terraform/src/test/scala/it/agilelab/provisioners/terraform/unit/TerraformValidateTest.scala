@@ -194,4 +194,81 @@ class TerraformValidateTest extends AnyFlatSpec with should.Matchers {
     mockLogger.lastLine shouldBe empty
   }
 
+  "Terraform" should "parse a successful validation message" in {
+
+    val outputString =
+      """
+        |{
+        |format_version: 1.0,
+        |valid: true,
+        |error_count: 0,
+        |warning_count: 0,
+        |diagnostics: []
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val mockProcessor = new MockProcessor(0, outputString)
+
+    val terraform = Terraform()
+      .processor(mockProcessor)
+      .outputInJson()
+      .onDirectory("folder")
+
+    val res: TerraformResult = terraform.doValidate()
+    res.validationErrors.size shouldBe 0
+
+  }
+
+  "Terraform" should "parse a validation message with errors" in {
+
+    val outputString =
+      """
+        |{
+        |  "format_version": "1.0",
+        |  "valid": false,
+        |  "error_count": 1,
+        |  "warning_count": 0,
+        |  "diagnostics": [
+        |    {
+        |      "severity": "error",
+        |      "summary": "Invalid reference",
+        |      "detail": "A reference to a resource type must be followed by at least one attribute access, specifying the resource name.",
+        |      "range": {
+        |        "filename": "main.tf",
+        |        "start": {
+        |          "line": 3,
+        |          "column": 22,
+        |          "byte": 89
+        |        },
+        |        "end": {
+        |          "line": 3,
+        |          "column": 25,
+        |          "byte": 92
+        |        }
+        |      },
+        |      "snippet": {
+        |        "context": "resource \"random_string\" \"random\"",
+        |        "code": "  special          = tru",
+        |        "start_line": 3,
+        |        "highlight_start_offset": 21,
+        |        "highlight_end_offset": 24,
+        |        "values": []
+        |      }
+        |    }
+        |  ]
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val mockProcessor = new MockProcessor(1, outputString)
+
+    val terraform = Terraform()
+      .processor(mockProcessor)
+      .outputInJson()
+      .onDirectory("folder")
+
+    val res: TerraformResult = terraform.doValidate()
+    res.validationErrors.size shouldBe 1
+    res.validationErrors.head should startWith("Invalid reference. Context [resource")
+  }
+
 }

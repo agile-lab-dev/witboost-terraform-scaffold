@@ -69,4 +69,12 @@ object FilesUtils {
       case Success(s) => Success(s.toString)
     }
 
+  /** this method checks if a directory exists
+    * @param root is the path of the directory
+    * @return whether the directory exists
+    */
+  def checkDirectory(root: Path): Try[Boolean] =
+    Try {
+      Files.isDirectory(root)
+    }
 }

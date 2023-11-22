@@ -9,7 +9,4 @@ trait FrameworkTestSupport {
     if (parsingResult.isInvalidInput) throw new IllegalArgumentException("A no valid yaml file is provided")
     parsingResult.descriptor
   }
-
-  def errorsIn(validationResult: ValidationResult): Seq[DescriptorErrorType] =
-    validationResult.errors.map(_.errorType)
 }

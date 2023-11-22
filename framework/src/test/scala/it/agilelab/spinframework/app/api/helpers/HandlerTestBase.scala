@@ -19,8 +19,7 @@ class HandlerTestBase extends AnyFlatSpec with Matchers {
       // Verify Response's body is empty.
       actualResp.body.compile.toVector.unsafeRunSync().isEmpty
     ) { expected =>
-      val x = actualResp.as[A].unsafeRunSync()
-      x == expected
+      actualResp.as[A].unsafeRunSync() == expected
     }
     statusCheck && bodyCheck
   }

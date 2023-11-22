@@ -25,6 +25,13 @@ trait CloudProvider {
     */
   def unprovision(descriptor: ComponentDescriptor): ProvisionResult
 
+  /** Receives the component descriptor and forwards a validate request to the cloud provider.
+    *
+    * @param descriptor contains the details of the resources to validate on the cloud
+    * @return the state of the operation
+    */
+  def validate(descriptor: ComponentDescriptor): ProvisionResult
+
   /** Receives the descriptor and the subjects and forwards an updateAcl request to the cloud provider.
     *
     * @param descriptor contains the details of the resources to allocate on the cloud

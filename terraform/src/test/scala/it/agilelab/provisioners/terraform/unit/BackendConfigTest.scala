@@ -213,7 +213,6 @@ class BackendConfigTest extends AnyFlatSpec with should.Matchers with FrameworkT
 
     val res = tfProvider.backendConfigsFrom(descriptor, None, Some("key"), configs)
 
-    println(res)
     res.isLeft shouldBe true
     res.left.getOrElse(null).size shouldBe 1
 

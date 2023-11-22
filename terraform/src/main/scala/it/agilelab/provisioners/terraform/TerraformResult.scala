@@ -1,8 +1,7 @@
 package it.agilelab.provisioners.terraform
 
-import io.circe.generic.JsonCodec
-import io.circe.generic.extras.semiauto._
-import io.circe.generic.extras.{ Configuration, JsonKey }
+import com.fasterxml.jackson.annotation
+import io.circe.generic.extras._
 import io.circe.{ parser, Decoder, Encoder }
 
 /** The result coming from the execution of a Terraform command.
@@ -12,36 +11,25 @@ import io.circe.{ parser, Decoder, Encoder }
   */
 class TerraformResult(processResult: ProcessResult) {
 
-  implicit val customConfig: Configuration = Configuration.default.withSnakeCaseMemberNames.withDefaults
+  implicit val customConfig: Configuration = Configuration.default.withSnakeCaseMemberNames
 
+  @ConfiguredJsonCodec
   case class Snippet(
-    context: String,
+    context: Option[String],
     code: String,
-    start_line: Int,
-    highlight_start_offset: Int,
-    highlight_end_offset: Int,
+    startLine: Int,
+    highlightStartOffset: Int,
+    highlightEndOffset: Int,
     values: List[String]
   )
-
-  implicit val snippetDecoder: Decoder[Snippet] = deriveConfiguredDecoder[Snippet]
-  implicit val snippetEncoder: Encoder[Snippet] = deriveConfiguredEncoder[Snippet]
-
+  @ConfiguredJsonCodec
   case class Position(line: Int, column: Int, byte: Int)
-
-  implicit val positionDecoder: Decoder[Position] = deriveConfiguredDecoder[Position]
-  implicit val positionEncoder: Encoder[Position] = deriveConfiguredEncoder[Position]
-
+  @ConfiguredJsonCodec
   case class Range(filename: String, start: Position, end: Position)
-
-  implicit val rangeDecoder: Decoder[Range] = deriveConfiguredDecoder[Range]
-  implicit val rangeEncoder: Encoder[Range] = deriveConfiguredEncoder[Range]
-
+  @ConfiguredJsonCodec
   case class Diagnostic(severity: String, summary: String, detail: String, range: Range, snippet: Snippet)
 
-  implicit val diagnosticDecoder: Decoder[Diagnostic] = deriveConfiguredDecoder[Diagnostic]
-  implicit val diagnosticEncoder: Encoder[Diagnostic] = deriveConfiguredEncoder[Diagnostic]
-
-  @JsonCodec
+  @ConfiguredJsonCodec
   case class ErrorResponse(
     @JsonKey("@level") level: String,
     @JsonKey("@message") message: String,
@@ -51,20 +39,26 @@ class TerraformResult(processResult: ProcessResult) {
     @JsonKey("type") typeOf: String
   )
 
-  implicit val errorResponseDecoder: Decoder[ErrorResponse] = deriveConfiguredDecoder[ErrorResponse]
-  implicit val errorResponseEncoder: Encoder[ErrorResponse] = deriveConfiguredEncoder[ErrorResponse]
+  @ConfiguredJsonCodec
+  case class ValidationResponse(
+    @JsonKey("format_version") formatVersion: String,
+    @JsonKey("valid") valid: Boolean,
+    @JsonKey("error_count") errorCount: Int,
+    @JsonKey("warning_count") warningCount: Int,
+    @JsonKey("diagnostics") diagnostics: List[Diagnostic]
+  )
 
-  @JsonCodec
-  case class Output(sensitive: Boolean, `type`: String, value: String)
+  @ConfiguredJsonCodec
+  case class Output(sensitive: Boolean, @JsonKey("type") typeOf: String, value: String)
 
-  @JsonCodec
+  @ConfiguredJsonCodec
   case class OutputMessage(
-    @JsonKey("@level") `@level`: String,
-    @JsonKey("@message") `@message`: String,
-    @JsonKey("@module") `@module`: String,
-    @JsonKey("@timestamp") `@timestamp`: String,
+    @JsonKey("@level") level: String,
+    @JsonKey("@message") message: String,
+    @JsonKey("@module") module: String,
+    @JsonKey("@timestamp") timestamp: String,
     @JsonKey("outputs") outputs: Map[String, Output],
-    @JsonKey("type") `type`: String
+    @JsonKey("type") typeOf: String
   )
 
   /** Allows to establish if the execution has been successful or not.
@@ -106,7 +100,7 @@ class TerraformResult(processResult: ProcessResult) {
                     TerraformOutput(
                       name = k._1,
                       value = k._2.value,
-                      typeOf = k._2.`type`,
+                      typeOf = k._2.typeOf,
                       sensitive = k._2.sensitive
                     )
                   )
@@ -142,14 +136,39 @@ class TerraformResult(processResult: ProcessResult) {
               val messageString  = value.message
               val detailString   = value.diagnostic.detail
               val snippetString  = value.diagnostic.snippet.code
-              val positionString = value.diagnostic.snippet.start_line
-              val appendString   = s"$messageString. $detailString $snippetString at line: $positionString"
+              val positionString = value.diagnostic.snippet.startLine
+              val fileName       = value.diagnostic.range.filename
+              val appendString   = s"$messageString. $detailString $snippetString at line: $positionString of $fileName"
               List(appendString)
             case Left(_)      => None
           }
         }
-      if (result.isEmpty) List("Details about the errors are not available. Contact the Platform team for assistance!")
-      else result
+      if (result.isEmpty)
+        List("Details about the errors are not available. Contact the Platform team for assistance!")
+      else
+        result
+    } else List.empty[String]
+
+  /** Builds a list of strings which comprises of validation messages.
+    * This is applicable in case of the following terraform operations - Validate.
+    *
+    * @return a list which stores validation messages after the above mentioned operations are performed and failed.
+    */
+  def validationErrors: List[String] =
+    if (!isSuccess) {
+      parser.parse(processResult.buildOutputString).flatMap(_.as[ValidationResponse]) match {
+        case Right(value) =>
+          value.diagnostics.map { x =>
+            val filename = x.range.filename
+            val line     = x.range.start.line
+            val summary  = x.summary
+            val code     = x.snippet.code
+            val context  = x.snippet.context.getOrElse("")
+            val output   = s"$summary. Context [$context]. Code [$code] at line $line of $filename"
+            output
+          }
+        case Left(_)      => List("Details about the errors are not available. Contact the Platform team for assistance!")
+      }
     } else List.empty[String]
 
 }

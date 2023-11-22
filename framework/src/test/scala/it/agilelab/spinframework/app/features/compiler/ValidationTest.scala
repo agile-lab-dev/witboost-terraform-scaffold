@@ -1,7 +1,7 @@
 package it.agilelab.spinframework.app.features.compiler
 
-import DescriptorErrorType._
-import Validation.{ Defined, IsValid, NonEmpty }
+import it.agilelab.spinframework.app.features.compiler.DescriptorErrorType._
+import it.agilelab.spinframework.app.features.compiler.Validation.{ Defined, IsValid, NonEmpty }
 import it.agilelab.spinframework.app.features.support.test.FrameworkTestSupport
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should

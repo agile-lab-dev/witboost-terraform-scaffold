@@ -1,7 +1,7 @@
 package it.agilelab.provisioners.terraform.unit
 
 import it.agilelab.provisioners.features.provider.TfProvider
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformModuleLoader }
+import it.agilelab.provisioners.terraform.{ Terraform, TerraformBuilder, TerraformModule, TerraformModuleLoader }
 import it.agilelab.spinframework.app.features.compiler.ComponentDescriptor
 import it.agilelab.spinframework.app.features.provision.ProvisioningStatus
 import it.agilelab.spinframework.app.features.support.test._
@@ -9,12 +9,13 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 import it.agilelab.provisioners.features.descriptor.TerraformOutputsDescriptor
 import it.agilelab.provisioners.features.provider.TfProvider
-import it.agilelab.provisioners.terraform.Terraform
 import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, Parser, ParserFactory }
 import it.agilelab.spinframework.app.features.provision.ProvisioningStatus
 import it.agilelab.spinframework.app.features.support.test._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
+
+import java.nio.file.Path
 
 class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with FrameworkTestSupport {
 
@@ -249,6 +250,15 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
   private val tfProvider                      =
     new TfProvider(terraformBuilder, TerraformModuleLoader.from("urn:dmb:utm:airbyte-standard:0.0.0").getOrElse(null))
 
+  private val mockProcessorFail    = new MockProcessor(1, "failure")
+  private val terraformBuilderFail = Terraform()
+    .processor(mockProcessorFail)
+  private val tfProviderFail       =
+    new TfProvider(
+      terraformBuilderFail,
+      TerraformModuleLoader.from("urn:dmb:utm:airbyte-standard:0.0.0").getOrElse(null)
+    )
+
   "variablesFrom" should "return correct vars" in {
 
     val variableMappings = Some(
@@ -324,6 +334,68 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
 
     val res = tfProvider.provision(descriptor)
     res.provisioningStatus shouldBe ProvisioningStatus.Completed
+
+  }
+
+  "validate" should "succeed with variables from config" in {
+
+    val res = tfProvider.validate(descriptor)
+    res.isSuccessful shouldBe true
+
+  }
+
+  "validate" should "fail but acl folder exists" in {
+
+    val mockProcessorFail = new MockProcessor(1, "failure")
+
+    val terraformBuilderFail = Terraform()
+      .processor(mockProcessorFail)
+
+    val tfProviderFail =
+      new TfProvider(
+        terraformBuilderFail,
+        TerraformModule(
+          Path.of("terraform/src/test/resources/terraform/dummy-acl").toString,
+          Map.empty[String, String],
+          Map.empty[String, String],
+          ""
+        )
+      )
+    val res            = tfProviderFail.validate(descriptor)
+    res.isSuccessful shouldBe false
+
+  }
+
+  "validate" should "succeed but acl folder exists" in {
+
+    val mockProcessorFail = new MockProcessor(0, "failure")
+
+    val terraformBuilderFail = Terraform()
+      .processor(mockProcessorFail)
+
+    val tfProviderFail =
+      new TfProvider(
+        terraformBuilderFail,
+        TerraformModule(
+          Path.of("terraform/src/test/resources/terraform/dummy-acl").toString,
+          Map.empty,
+          Map(
+            "key" -> "$.dataProduct.name",
+            "foo" -> "$.dataProduct.intField"
+          ),
+          "key"
+        )
+      )
+
+    val res = tfProviderFail.validate(descriptor)
+    res.isSuccessful shouldBe true
+
+  }
+
+  "validate" should "fails with variables from config" in {
+
+    val res = tfProviderFail.validate(descriptor)
+    res.isSuccessful shouldBe false
 
   }
 

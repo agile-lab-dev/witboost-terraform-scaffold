@@ -10,8 +10,7 @@ import it.agilelab.spinframework.app.api.generated.definitions.{
   UpdateAclRequest
 }
 import it.agilelab.spinframework.app.api.helpers.HandlerTestBase
-import it.agilelab.spinframework.app.config.Configuration.provisionerConfig
-import it.agilelab.spinframework.app.features.compiler.{ Compile, CompileResult, JsonDescriptor, YamlDescriptor }
+import it.agilelab.spinframework.app.features.compiler.YamlDescriptor
 import it.agilelab.spinframework.app.features.provision.{ Provision, ProvisionResult }
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s.circe.CirceEntityEncoder._
@@ -25,6 +24,7 @@ class UpdateAclHandlerTest extends HandlerTestBase {
     override def doUnprovisioning(yaml: YamlDescriptor): ProvisionResult                                    = ProvisionResult.completed()
     override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult =
       ProvisionResult.completed()
+    override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult                                = ProvisionResult.completed()
   }
 
   "The server" should "return a 500 error" in {

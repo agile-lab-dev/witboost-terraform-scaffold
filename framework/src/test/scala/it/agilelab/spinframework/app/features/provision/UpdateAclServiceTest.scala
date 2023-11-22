@@ -18,8 +18,7 @@ class UpdateAclServiceTest extends AnyFlatSpec with should.Matchers {
     val cProvider                          = CloudProviderStub.updateAcl((_, _, _) => ProvisionResult.completed())
     val principalMapperPluginLoader        = new PrincipalMapperPluginLoader()
     val deps                               = new SynchronousSpecificProvisionerDependencies {
-      override def descriptorValidator: DescriptorValidator = validator
-
+      override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
     }
     val provisionService: ProvisionService =
@@ -63,8 +62,7 @@ class UpdateAclServiceTest extends AnyFlatSpec with should.Matchers {
     val principalMapperPluginLoader        =
       new PrincipalMapperPluginLoader()
     val deps                               = new SynchronousSpecificProvisionerDependencies {
-      override def descriptorValidator: DescriptorValidator = validator
-
+      override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
     }
     val provisionService: ProvisionService =
@@ -105,8 +103,7 @@ class UpdateAclServiceTest extends AnyFlatSpec with should.Matchers {
     val cProvider                          = CloudProviderStub.updateAcl((_, _, _) => ProvisionResult.completed())
     val principalMapperPluginLoader        = new PrincipalMapperPluginLoader()
     val deps                               = new SynchronousSpecificProvisionerDependencies {
-      override def descriptorValidator: DescriptorValidator = validator
-
+      override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
     }
     val provisionService: ProvisionService =

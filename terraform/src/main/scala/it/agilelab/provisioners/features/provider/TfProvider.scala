@@ -40,7 +40,10 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
         init(descriptor, terraform, stateKeyMapper) match {
           case Left(l)  => ProvisionResult.failure(l)
           case Right(_) =>
+            // -----------------------
+            // Core logic happens here
             val res = f(terraform)
+            // -----------------------
             // delete the context
             FilesUtils.deleteDirectory(Path.of(contextPath))
             res
@@ -89,6 +92,81 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
               ProvisionResult.failure(result.errorMessages.map(ErrorMessage))
         }
     )
+
+  override def validate(descriptor: ComponentDescriptor): ProvisionResult = {
+
+    val tfPath  = Path.of(terraformModule.path)
+    val aclPath = Path.of(tfPath.toString, "acl")
+
+    val aclModuleExists = FilesUtils.checkDirectory(aclPath) match {
+      case Success(s) => s
+      case Failure(f) =>
+        logger.warn("Couldn't check the existence of the acl submodule, skipping its validation..", f)
+        false
+    }
+
+    // Validate acl module
+    val validateAclModule: ProvisionResult = if (aclModuleExists) {
+      val r = withContext(
+        descriptor,
+        _ => aclPath.toString,
+        None,
+        terraform => {
+          // At this time we don't have principals, hence a "tf plan" is not possible
+          // We proceed with a simpler "tf validate"
+          val result = terraform.doValidate()
+          if (result.isSuccess) {
+            ProvisionResult.completed()
+          } else {
+            ProvisionResult.failure(result.validationErrors.map(ErrorMessage))
+          }
+        }
+      )
+      // Repack the errors to make the module explicit
+      if (!r.isSuccessful) {
+        ProvisionResult.failure(r.errors.map(e => ErrorMessage(s"[ACL module] ${e.description}")))
+      } else {
+        r
+      }
+
+    } else {
+      logger.warn("Acl module doesn't exists, skipping..")
+      ProvisionResult.completed()
+    }
+
+    // Validate and Plan main module
+    val validateMainModule: ProvisionResult = {
+      val r = withContext(
+        descriptor,
+        _ => tfPath.toString,
+        None,
+        terraform =>
+          variablesFrom(descriptor) match {
+            case Left(l)     => ProvisionResult.failure(l)
+            case Right(vars) =>
+              val res = terraform.doPlan(vars)
+              if (res.isSuccess) {
+                ProvisionResult.completed()
+              } else {
+                ProvisionResult.failure(res.errorMessages.map(ErrorMessage))
+              }
+          }
+      )
+      // Repack the errors to make the module explicit
+      if (!r.isSuccessful) {
+        ProvisionResult.failure(r.errors.map(e => ErrorMessage(s"[Main module] ${e.description}")))
+      } else {
+        r
+      }
+    }
+
+    if (validateAclModule.isSuccessful && validateMainModule.isSuccessful)
+      ProvisionResult.completed()
+    else {
+      ProvisionResult.failure(validateAclModule.errors ++ validateMainModule.errors)
+    }
+
+  }
 
   override def updateAcl(
     resultDescriptor: ComponentDescriptor,
@@ -166,7 +244,12 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
       case Right(configs) =>
         val terraformInitResult = terraform.doInit(configs)
         if (!terraformInitResult.isSuccess) {
-          Left(terraformInitResult.errorMessages.map(ErrorMessage))
+          // Since the `init` doesn't support json output, we're not able to provide detailed errors
+          Left(
+            List(
+              "Failure during module initialization, we were unable to extract errors. There might be syntax errors."
+            ).map(ErrorMessage)
+          )
         } else {
           Right(terraformInitResult)
         }
@@ -209,6 +292,8 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
     // for each key, take the corresponding value
     // e.g. resource_group_name -> sample_name
     val (lefts, right) = mappings
+      // filter out the stateKey, it will be processed later on
+      .filter(mapping => !mapping._1.equalsIgnoreCase(stateKey))
       .map(mapping =>
         JsonPathUtils.getValue(descriptor.toString, mapping._2) match {
           case Right(r) => Right(mapping._1 -> r)

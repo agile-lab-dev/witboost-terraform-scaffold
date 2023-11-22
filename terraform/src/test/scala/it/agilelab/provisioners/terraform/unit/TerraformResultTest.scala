@@ -345,4 +345,33 @@ class TerraformResultTest extends AnyFlatSpec with should.Matchers {
 
   }
 
+  "Terraform" should "check that the error correctly parsed" in {
+
+    val outputString =
+      """
+        |{
+        |  "@level":"error",
+        |  "@message":"Error: No value for required variable",
+        |  "@module":"terraform.ui",
+        |  "@timestamp":"2023-11-09T17:31:47.934774+01:00",
+        |  "diagnostic":{"severity":"error","summary":"No value for required variable","detail":"The root module input variable \"storage_account_name\" is not set, and has no default value. Use a -var or -var-file command line argument to provide a value for this variable.","range":{"filename":"variables.tf","start":{"line":11,"column":1,"byte":206},"end":{"line":11,"column":32,"byte":237}},"snippet":{"context":null,"code":"variable \"storage_account_name\" {","start_line":11,"highlight_start_offset":0,"highlight_end_offset":31,"values":[]}},
+        |  "type":"diagnostic"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val mockProcessor = new MockProcessor(1, outputString)
+
+    val terraform = Terraform()
+      .outputInJson()
+      .processor(mockProcessor)
+      .onDirectory("folder")
+
+    val result = terraform.doDestroy(noVariable())
+
+    result.isSuccess shouldBe false
+    result.errorMessages.size shouldBe 1
+    result.errorMessages.head should startWith("Error: No value for required variable.")
+
+  }
+
 }

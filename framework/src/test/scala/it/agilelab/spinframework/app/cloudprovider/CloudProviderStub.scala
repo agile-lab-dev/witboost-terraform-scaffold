@@ -6,12 +6,16 @@ import it.agilelab.spinframework.app.features.provision.{ CloudProvider, Provisi
 object CloudProviderStub {
   type ProvisionFunction = ComponentDescriptor => ProvisionResult
   type UpdateAclFcuntion = (ComponentDescriptor, ComponentDescriptor, Set[String]) => ProvisionResult
+  type ValidateFunction  = ComponentDescriptor => ProvisionResult
 
   def provision(function: ProvisionFunction): CloudProviderStub   = new CloudProviderStub {
     override def provision(descriptor: ComponentDescriptor): ProvisionResult = function.apply(descriptor)
   }
   def unprovision(function: ProvisionFunction): CloudProviderStub = new CloudProviderStub {
     override def unprovision(descriptor: ComponentDescriptor): ProvisionResult = function.apply(descriptor)
+  }
+  def validate(function: ValidateFunction): CloudProviderStub     = new CloudProviderStub {
+    override def validate(descriptor: ComponentDescriptor): ProvisionResult = function.apply(descriptor)
   }
   def updateAcl(function: UpdateAclFcuntion): CloudProviderStub   = new CloudProviderStub {
     override def updateAcl(
@@ -37,4 +41,6 @@ class CloudProviderStub extends CloudProvider {
     refs: Set[String]
   ): ProvisionResult                                                         =
     throw new UnsupportedOperationException
+
+  override def validate(descriptor: ComponentDescriptor): ProvisionResult = throw new UnsupportedOperationException
 }

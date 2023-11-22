@@ -43,7 +43,9 @@ To enable users to create SPs based on this one without writing code, we should 
 [CUE](https://cuelang.org/) is an open-source data validation language and inference engine with its roots in logic programming. Although the language is not a general-purpose programming language, it has many applications, such as data validation, data templating, configuration, querying, code generation, and even scripting. The inference engine can be used to validate data in code or to include it as part of a code generation pipeline.
 
 ### Terraform
-In addition to CUE, we could use also the Terraform `validate` command. Validate runs checks that verify whether a configuration is syntactically valid and internally consistent, regardless of any provided variables or existing state.
+In addition to CUE, we also use Terraform `validate` and `plan` command to test syntactic and semantic correctness.
+- The main module is tested by running `init` -> `plan`.
+- The acl module is tested by running `init` -> `validate`. Since at this point we're missing a number of required variables (i.e. principals and outputs) we must limit these tests to the `validate`.
 
 ![Validation with CUE](hld-Validation.png)
 
@@ -86,6 +88,7 @@ This terraform module is a sub-module of the main module (used by the provision/
 - the `updateAcl` request is translated to an `apply` operation of the acl submodule on Terraform side
 - the `provision` request doesn't touch the acl module.
 - the `unprovision`, which destroys the main module, also destroys the acl module
+- the `validate`, which applies a `plan` of the main module, also calls a `validate` on the acl module
 
 
 ### Principal mapping

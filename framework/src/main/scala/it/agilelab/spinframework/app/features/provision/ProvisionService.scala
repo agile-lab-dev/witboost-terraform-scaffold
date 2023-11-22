@@ -8,7 +8,7 @@ import it.agilelab.spinframework.app.features.compiler._
 import it.agilelab.spinframework.app.utils.JsonPathUtils
 import org.slf4j.{ Logger, LoggerFactory }
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 class ProvisionService(
   compile: Compile,
@@ -45,6 +45,21 @@ class ProvisionService(
     } yield cloudProvider
     res match {
       case Right(cloudProvider) => cloudProvider.unprovision(result.descriptor)
+      case Left(message)        => ProvisionResult.failure(Seq(ErrorMessage(message)))
+    }
+  }
+
+  override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult = {
+
+    val result: CompileResult = compile.doCompile(yamlDescriptor)
+    if (!result.isSuccess) return ProvisionResult.failure(result.errors)
+
+    val res = for {
+      useCaseTemplateId <- JsonPathUtils.getValue(result.descriptor.toString, useCaseTemplateIdJsonPath)
+      cloudProvider     <- specific.cloudProvider(useCaseTemplateId)
+    } yield cloudProvider
+    res match {
+      case Right(cloudProvider) => cloudProvider.validate(result.descriptor)
       case Left(message)        => ProvisionResult.failure(Seq(ErrorMessage(message)))
     }
   }

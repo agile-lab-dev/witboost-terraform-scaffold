@@ -1,8 +1,8 @@
 package it.agilelab.spinframework.app.features.support.test
 
 import com.google.gson._
-import it.agilelab.spinframework.app.api.generated.definitions.DescriptorKind
 import it.agilelab.spinframework.app.api.generated.definitions.ProvisioningStatus.{ Status => PS }
+import it.agilelab.spinframework.app.api.generated.definitions.{ DescriptorKind, ValidationError }
 import requests.Response
 
 import java.lang.reflect.Type
@@ -17,7 +17,10 @@ class LocalHttpClient(val port: Int, val pref: Option[String] = None) {
   gsonBuilder.registerTypeAdapter(classOf[DescriptorKind], new DescriptorKindSerializer)
   gsonBuilder.registerTypeAdapter(classOf[Option[Any]], new OptionSerializer)
   gsonBuilder.registerTypeAdapter(classOf[Vector[String]], new VectorSerializer)
-  private val gson        = gsonBuilder.create
+  gsonBuilder.registerTypeAdapter(classOf[Vector[String]], new VectorDeserializer)
+  gsonBuilder.registerTypeAdapter(classOf[Option[ValidationError]], new OptionVEDeserializer)
+
+  private val gson = gsonBuilder.create
 
   def post[T](endpoint: String, request: AnyRef, bodyClass: Class[T]): HttpResponse[T] = {
     val completeUrl = url(endpoint)
@@ -61,15 +64,28 @@ class DescriptorKindSerializer extends JsonSerializer[DescriptorKind] {
     new JsonPrimitive(src.value)
 }
 
-class OptionSerializer extends JsonSerializer[Option[Any]] {
+class OptionSerializer     extends JsonSerializer[Option[Any]]               {
   override def serialize(src: Option[Any], typeOfSrc: Type, context: JsonSerializationContext): JsonElement =
     src match {
       case Some(value) => context.serialize(value)
       case None        => JsonNull.INSTANCE
     }
 }
+class OptionVEDeserializer extends JsonDeserializer[Option[ValidationError]] {
+  override def deserialize(
+    json: JsonElement,
+    typeOfT: Type,
+    context: JsonDeserializationContext
+  ): Option[ValidationError] =
+    Some(context.deserialize(json, classOf[ValidationError]))
+}
 
 class VectorSerializer extends JsonSerializer[Vector[String]] {
   override def serialize(src: Vector[String], typeOfSrc: Type, context: JsonSerializationContext): JsonElement =
     context.serialize(src.toArray)
+}
+
+class VectorDeserializer extends JsonDeserializer[Vector[String]] {
+  override def deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): Vector[String] =
+    new Gson().fromJson(json.getAsJsonArray, classOf[Array[String]]).toVector
 }

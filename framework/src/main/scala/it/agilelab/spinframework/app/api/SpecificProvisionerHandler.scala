@@ -11,7 +11,7 @@ import it.agilelab.spinframework.app.api.generated.definitions.{
 }
 import it.agilelab.spinframework.app.api.generated.{ Handler, Resource }
 import it.agilelab.spinframework.app.api.mapping.{ ProvisioningStatusMapper, ValidationErrorMapper }
-import it.agilelab.spinframework.app.features.compiler.{ Compile, JsonDescriptor, YamlDescriptor }
+import it.agilelab.spinframework.app.features.compiler.{ Compile, YamlDescriptor }
 import it.agilelab.spinframework.app.features.provision.ProvisioningStatus.{ Completed, Failed, Running }
 import it.agilelab.spinframework.app.features.provision.{ ComponentToken, Provision, ProvisioningStatus }
 import it.agilelab.spinframework.app.features.status.GetStatus
@@ -83,9 +83,14 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
   override def validate(respond: Resource.ValidateResponse.type)(
     body: ProvisioningRequest
   ): IO[Resource.ValidateResponse] = IO.blocking {
-    val compileResult = compile.doCompile(YamlDescriptor(body.descriptor))
-    val errors        = Option(ValidationErrorMapper.from(compileResult)).filter(_.errors.nonEmpty)
-    Resource.ValidateResponse.Ok(ValidationResult(compileResult.isSuccess, errors))
+    val descriptor = YamlDescriptor(body.descriptor)
+    val result     = provision.doValidate(descriptor)
+    if (result.isSuccessful) {
+      Resource.ValidateResponse.Ok(ValidationResult(valid = true))
+    } else {
+      Resource.ValidateResponse.Ok(ValidationResult(valid = false, Some(ValidationErrorMapper.from(result))))
+    }
+
   }.handleError((f: Throwable) => Resource.ValidateResponse.InternalServerError(systemError(f, Validate)))
 
   override def getStatus(respond: Resource.GetStatusResponse.type)(token: String): IO[Resource.GetStatusResponse] =

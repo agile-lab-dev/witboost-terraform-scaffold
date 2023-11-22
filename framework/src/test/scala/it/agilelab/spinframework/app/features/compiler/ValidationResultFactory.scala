@@ -1,6 +1,6 @@
 package it.agilelab.spinframework.app.features.compiler
 
-import DescriptorErrorType._
+import it.agilelab.spinframework.app.features.compiler.DescriptorErrorType._
 
 object ValidationResultFactory {
 

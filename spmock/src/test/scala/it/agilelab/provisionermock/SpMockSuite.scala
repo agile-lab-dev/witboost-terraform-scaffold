@@ -56,7 +56,7 @@ trait SpMockSuite extends AnyFlatSpec with should.Matchers with BeforeAndAfterAl
     healthCheckResponse.status shouldBe 200
   }
 
-  it should "validate a provision request" in {
+  it should "validate a provision request - with failure" in {
     val descriptor =
       """
       region: west-europe
@@ -73,8 +73,32 @@ trait SpMockSuite extends AnyFlatSpec with should.Matchers with BeforeAndAfterAl
       )
       .body
 
+    validateResponse.valid shouldBe false
+    validateResponse.error.get.errors.head should include(
+      "Terraform variables could not be extracted from the descriptor."
+    )
+  }
+
+  it should "validate a provision request - with success" in {
+    val descriptor =
+      """
+        |dataProduct:
+        |  components:
+        |    - kind: workload
+        |      id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+        |      useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+        |""".stripMargin
+
+    val validateResponse: ValidationResult = httpClient
+      .post(
+        endpoint = "/v1/validate",
+        request = ProvisioningRequest(descriptorKind = DescriptorKind.ComponentDescriptor, descriptor = descriptor),
+        bodyClass = classOf[ValidationResult]
+      )
+      .body
+
     validateResponse.valid shouldBe true
-    validateResponse.error shouldBe null
   }
 
   it should "accept an unprovision request" in {

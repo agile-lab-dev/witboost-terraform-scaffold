@@ -1,6 +1,6 @@
 package it.agilelab.spinframework.app.features.compiler
 
-import DescriptorErrorType.{ EmptyField, UndefinedField }
+import it.agilelab.spinframework.app.features.compiler.DescriptorErrorType.{ EmptyField, UndefinedField }
 
 /** The entry point to perform the validation operation.
   *

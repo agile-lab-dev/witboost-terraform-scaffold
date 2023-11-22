@@ -41,8 +41,9 @@ class ProvisionServiceTest extends AnyFlatSpec with should.Matchers {
   }
 
   "The provision service" should "return an error for an invalid yaml descriptor" in {
-    val compile                     = new CompileService(parser, null)
-    val provision: ProvisionService = new ProvisionService(compile, null, null)
+    val validator: DescriptorValidator = _ => ValidationResult.create
+    val compile                        = new CompileService(parser, validator)
+    val provision: ProvisionService    = new ProvisionService(compile, null, null)
 
     val invalidYaml = YamlDescriptor("""
       invalid-field: 1:2:3
@@ -76,8 +77,7 @@ class ProvisionServiceTest extends AnyFlatSpec with should.Matchers {
     val cloudProviderErrors            = Seq(ErrorMessage("some cloud error"))
     val cProvider                      = CloudProviderStub.provision(_ => ProvisionResult.failure(cloudProviderErrors))
     val deps                           = new SynchronousSpecificProvisionerDependencies {
-      override def descriptorValidator: DescriptorValidator = validator
-
+      override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
     }
     val provision: ProvisionService    = new ProvisionService(compile, deps, null)
@@ -103,8 +103,7 @@ class ProvisionServiceTest extends AnyFlatSpec with should.Matchers {
     val compile                            = new CompileService(parser, validator)
     val cProvider                          = CloudProviderStub.provision(_ => ProvisionResult.completed())
     val deps                               = new SynchronousSpecificProvisionerDependencies {
-      override def descriptorValidator: DescriptorValidator = validator
-
+      override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
     }
     val provisionService: ProvisionService =
