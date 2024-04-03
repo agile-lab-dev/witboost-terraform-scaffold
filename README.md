@@ -46,7 +46,7 @@ This microservice is written in Scala 2.13, using HTTP4S for the HTTP layer. Pro
 
 - Java 11
 - SBT
-- Terraform v1.4.4 or later (for running tests and for local usage)
+- Terraform v1.7.5 or later (for running tests and for local usage)
 - Docker (for building images only)
 
 **Generating sources:** this project uses OpenAPI as standard API specification and the [sbt-guardrail](https://github.com/guardrail-dev/sbt-guardrail) plugin to generate server code from the [specification](./framework/src/main/openapi/interface-specification.yml).

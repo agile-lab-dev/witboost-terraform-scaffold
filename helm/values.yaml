@@ -20,6 +20,12 @@ image:
 #     value: "10"
 extraEnvVars: []
 
+# -- define extra volumes
+extraVolumes: []
+
+# -- define extra volume mounts
+extraVolumeMounts: []
+
 # -- readiness probe spec
 readinessProbe: {}
 

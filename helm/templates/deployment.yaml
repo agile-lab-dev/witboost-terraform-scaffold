@@ -30,25 +30,9 @@ spec:
           configMap:
             name: {{ template "terraformsp.fullname" . }}-config
             defaultMode: 420
-        - name: tf-config
-          configMap:
-            name: tf-config
-        - name: tf-volume
-          emptyDir: {}
-      initContainers:
-        - name: {{ .Chart.Name }}-init
-          image: {{ .Values.image.registry }}:{{ .Values.image.tag }}
-          command:
-            - "/bin/sh"
-            - "-c"
-            - |
-              ls /tmp/tf
-              tar -xf  /tmp/tf/tf.tar -C /
-          volumeMounts:
-            - name: tf-config
-              mountPath: /tmp/tf
-            - name: tf-volume
-              mountPath: /tf
+        {{- if .Values.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: {{ .Values.image.registry }}:{{ .Values.image.tag }}
@@ -80,5 +64,6 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: tf-volume
-              mountPath: /tf
+            {{- if .Values.extraVolumeMounts }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.extraVolumeMounts "context" $) | nindent 12 }}
+            {{- end }}

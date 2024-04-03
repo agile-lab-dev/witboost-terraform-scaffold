@@ -11,30 +11,6 @@
 
 ## Installing the Chart
 
-The chart depends on the `tf-config` configmap, which is expected to contain a `tf.tar` archive.
-This archive is expected to contain N folders, each one containing the terraform configuration of each module.
-
-*Archive example structure*
-```
-.
-└── module1
-    ├── acl
-    │   └── ...
-    ├── main.tf
-    ├── outputs.tf
-    ├── provider.tf
-    └── variables.tf
-```
-
-First step is to create the configmap:
-
-```bash
-# Package tf configs
-tar -cvf tf.tar -C tf .
-# Create configmap
-kubectl create configmap tf-config --from-file=tf.tar
-```
-
 To install the chart with the release name `my-release`:
 
 ```console

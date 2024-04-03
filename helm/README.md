@@ -12,30 +12,6 @@ A Helm chart for Kubernetes
 
 ## Installing the Chart
 
-The chart depends on the `tf-config` configmap, which is expected to contain a `tf.tar` archive.
-This archive is expected to contain N folders, each one containing the terraform configuration of each module.
-
-*Archive example structure*
-```
-.
-└── module1
-    ├── acl
-    │   └── ...
-    ├── main.tf
-    ├── outputs.tf
-    ├── provider.tf
-    └── variables.tf
-```
-
-First step is to create the configmap:
-
-```bash
-# Package tf configs
-tar -cvf tf.tar -C tf .
-# Create configmap
-kubectl create configmap tf-config --from-file=tf.tar
-```
-
 To install the chart with the release name `my-release`:
 
 ```console
@@ -56,6 +32,8 @@ $ helm install my-release foo-bar/terraform-specific-provisioner
 | configOverride | object | `{}` | This configuration allows you to override the application.conf file |
 | dockerRegistrySecretName | string | `"regcred"` | Docker Registry Secret name used to access a private repo |
 | extraEnvVars | list | `[]` | define extra variables to add to the container(s) e.g: extraEnvVars:  - name: FOO     value: "10" |
+| extraVolumeMounts | list | `[]` | define extra volume mounts |
+| extraVolumes | list | `[]` | define extra volumes |
 | image.pullPolicy | string | `"Always"` | The imagePullPolicy for a container and the tag of the image affect when the kubelet attempts to pull (download) the specified image. |
 | image.registry | string | `"registry.gitlab.com/agilefactory/witboost.mesh/provisioning/terraform/witboost.mesh.provisioning.terraform.specificprovisioner"` | Image repository |
 | image.tag | string | `"to-be-replaced"` | Image tag |
