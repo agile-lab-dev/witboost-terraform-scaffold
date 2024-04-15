@@ -22,9 +22,11 @@ trait Dependencies {
   )
 
   lazy val principalMappingPluginDependencies: Seq[ModuleID] = Seq(
-    "software.amazon.awssdk" % "iam"    % "2.20.140",
-    "software.amazon.awssdk" % "sts"    % "2.20.140",
-    "com.typesafe"           % "config" % "1.2.1"
+    "software.amazon.awssdk" % "iam"             % "2.20.140",
+    "software.amazon.awssdk" % "sts"             % "2.20.140",
+    "com.typesafe"           % "config"          % "1.2.1",
+    "com.microsoft.graph"    % "microsoft-graph" % "6.4.0",
+    "com.azure"              % "azure-identity"  % "1.11.4"
   )
 
   private val http4sVersion                  = "0.23.18"
