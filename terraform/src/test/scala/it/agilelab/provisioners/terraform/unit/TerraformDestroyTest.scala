@@ -2,13 +2,20 @@ package it.agilelab.provisioners.terraform.unit
 
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.noLog
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformResult, TerraformVariables }
 import it.agilelab.provisioners.terraform.TerraformVariables.noVariable
+import it.agilelab.provisioners.terraform.{ ProcessResult, _ }
 import it.agilelab.spinframework.app.features.compiler.{ ParserFactory, YamlDescriptor }
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.MockitoSugar.when
+import org.mockito.{ ArgumentMatchersSugar, IdiomaticMockito, Mockito }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
-class TerraformDestroyTest extends AnyFlatSpec with should.Matchers {
+import java.nio.file.Files
+
+class TerraformDestroyTest extends AnyFlatSpec with should.Matchers with IdiomaticMockito with ArgumentMatchersSugar {
+
+  val tempFolder = Files.createTempDirectory("tmp-")
 
   "Terraform" should "perform destroy" in {
 
@@ -180,12 +187,139 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers {
       .processor(mockProcessor)
       .withLogger(noLog)
 
+    val yamlDescriptor = """
+      dataProduct:
+        components:
+          - kind: workload
+            id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+            useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+      componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+      some-field: 1
+    """
+
     val parser          = ParserFactory.parser()
     val terraformModule = TerraformModule("doesnt-exist", Map.empty, Map.empty, "")
     val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
-    val res             = tfProvider.unprovision(YamlDescriptor("").parse(parser).descriptor)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, true)
 
     res.isSuccessful shouldBe false
+
+  }
+
+  "Terraform" should "Destroy applied with (removeData = false, kind = outputport)" in {
+    val outputString  = "Destroy complete!"
+    val mockProcessor = mock[Processor]
+    when(mockProcessor.run(*)) thenReturn new ProcessResult(0, new MockProcessOutput(outputString))
+
+    val terraformBuilder = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+
+    val yamlDescriptor = """
+      dataProduct:
+        foo: bar
+        components:
+          - kind: outputport
+            id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+            useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+      componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+      some-field: 1
+
+    """
+
+    val parser          = ParserFactory.parser()
+    val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.foo"), "key")
+    val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, false)
+
+    res.isSuccessful shouldBe true
+
+  }
+
+  "Terraform" should "Destroy applied with (removeData = false, kind = workload)" in {
+    val outputString  = "Destroy complete!"
+    val mockProcessor = mock[Processor]
+    when(mockProcessor.run(*)) thenReturn new ProcessResult(0, new MockProcessOutput(outputString))
+
+    val terraformBuilder = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+
+    val yamlDescriptor = """
+      dataProduct:
+        foo: bar
+        components:
+          - kind: workload
+            id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+            useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+      componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+      some-field: 1
+
+    """
+
+    val parser          = ParserFactory.parser()
+    val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.foo"), "key")
+    val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, false)
+
+    res.isSuccessful shouldBe true
+
+  }
+
+  "Terraform" should "Destroy applied with (removeData = true, kind = storage)" in {
+    val outputString  = "Destroy complete!"
+    val mockProcessor = mock[Processor]
+    when(mockProcessor.run(*)) thenReturn new ProcessResult(0, new MockProcessOutput(outputString))
+
+    val terraformBuilder = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+
+    val yamlDescriptor = """
+      dataProduct:
+        foo: bar
+        components:
+          - kind: storage
+            id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+            useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+      componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+      some-field: 1
+
+    """
+
+    val parser          = ParserFactory.parser()
+    val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.foo"), "key")
+    val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, true)
+
+    res.isSuccessful shouldBe true
+
+  }
+
+  "Terraform" should "Destroy skipped with (removeData = false, kind = storage)" in {
+    val mockProcessor = mock[Processor]
+
+    val terraformBuilder = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+
+    val yamlDescriptor = """
+      dataProduct:
+        components:
+          - kind: storage
+            id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+            useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+      componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+      some-field: 1
+    """
+
+    val parser          = ParserFactory.parser()
+    val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map.empty, "")
+    val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, removeData = false)
+
+    Mockito.verifyNoInteractions(mockProcessor.run(*))
+    res.isSuccessful shouldBe true
 
   }
 

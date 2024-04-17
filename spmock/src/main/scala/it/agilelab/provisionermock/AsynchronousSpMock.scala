@@ -15,16 +15,17 @@ class AsynchronousMockDependencies extends AsynchronousSpecificProvisionerDepend
   override def descriptorValidator: DescriptorValidator = _ => Validation.start
 
   override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(new CloudProvider {
-    override def provision(descriptor: ComponentDescriptor): ProvisionResult   =
+    override def provision(descriptor: ComponentDescriptor): ProvisionResult                        =
       ProvisionResult.running(ComponentToken("component-1234"))
-    override def unprovision(descriptor: ComponentDescriptor): ProvisionResult = ProvisionResult.completed()
+    override def unprovision(descriptor: ComponentDescriptor, removeData: Boolean): ProvisionResult =
+      ProvisionResult.completed()
     override def updateAcl(
       descriptorResult: ComponentDescriptor,
       descriptorRequest: ComponentDescriptor,
       refs: Set[String]
-    ): ProvisionResult                                                         =
+    ): ProvisionResult                                                                              =
       ProvisionResult.completed()
-    override def validate(descriptor: ComponentDescriptor): ProvisionResult    = ProvisionResult.completed()
+    override def validate(descriptor: ComponentDescriptor): ProvisionResult                         = ProvisionResult.completed()
   })
 
   override def getStatus: GetStatus = _ => ProvisioningStatus.Completed

@@ -35,7 +35,7 @@ class ProvisionService(
     }
   }
 
-  override def doUnprovisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = {
+  override def doUnprovisioning(yamlDescriptor: YamlDescriptor, removeData: Boolean): ProvisionResult = {
     val result: CompileResult = compile.doCompile(yamlDescriptor)
     if (!result.isSuccess) return ProvisionResult.failure(result.errors)
 
@@ -44,7 +44,7 @@ class ProvisionService(
       cloudProvider     <- specific.cloudProvider(useCaseTemplateId)
     } yield cloudProvider
     res match {
-      case Right(cloudProvider) => cloudProvider.unprovision(result.descriptor)
+      case Right(cloudProvider) => cloudProvider.unprovision(result.descriptor, removeData)
       case Left(message)        => ProvisionResult.failure(Seq(ErrorMessage(message)))
     }
   }

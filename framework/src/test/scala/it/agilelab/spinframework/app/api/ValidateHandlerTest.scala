@@ -24,7 +24,8 @@ class ValidateHandlerTest extends HandlerTestBase {
 
   class ProvisionStub extends Provision {
     override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult                            = ProvisionResult.completed()
-    override def doUnprovisioning(yaml: YamlDescriptor): ProvisionResult                                    = ProvisionResult.completed()
+    override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean): ProvisionResult               =
+      ProvisionResult.completed()
     override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult =
       ProvisionResult.completed()
     override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult                                = ProvisionResult.completed()
@@ -49,7 +50,8 @@ class ValidateHandlerTest extends HandlerTestBase {
     val errors           = Seq(ErrorMessage("error1"), ErrorMessage("error2"))
     val failingProvision = new Provision {
       override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult                            = ProvisionResult.completed()
-      override def doUnprovisioning(yaml: YamlDescriptor): ProvisionResult                                    = ProvisionResult.completed()
+      override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean): ProvisionResult               =
+        ProvisionResult.completed()
       override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult =
         ProvisionResult.completed()
       override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult                                = ProvisionResult.failure(errors)

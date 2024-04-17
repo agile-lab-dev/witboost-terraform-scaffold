@@ -341,6 +341,10 @@ For this reason, the mapping is demanded to the `principalMappingPlugin`, which 
 
 Here some [samples](principalmapping-samples/README.md) we provide.
 
+### Unprovisioning
+
+The `unprovision` endpoint takes care about destroying the provisioned resources. The endpoint honours the `removeData` parameter, it will therefore skip the destroy operation for components of type `storage` when `false`.
+
 ## Deploying
 
 This microservice is meant to be deployed to a Kubernetes cluster with the included Helm chart and the scripts that can be found in the `helm` subdirectory. You can find more details [here](helm/README.md).

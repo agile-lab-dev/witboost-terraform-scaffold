@@ -76,22 +76,42 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
         }
     )
 
-  override def unprovision(descriptor: ComponentDescriptor): ProvisionResult =
-    withContext(
-      descriptor,
-      contextPath => Path.of(contextPath).toString,
-      None,
-      terraform =>
-        variablesFrom(descriptor) match {
-          case Left(l)     => ProvisionResult.failure(l)
-          case Right(vars) =>
-            val result = terraform.doDestroy(vars)
-            if (result.isSuccess)
-              ProvisionResult.completed()
-            else
-              ProvisionResult.failure(result.errorMessages.map(ErrorMessage))
+  private val kindJsonPath = "$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].kind"
+
+  override def unprovision(descriptor: ComponentDescriptor, removeData: Boolean): ProvisionResult = {
+
+    val kind = JsonPathUtils.getValue(descriptor.toString, kindJsonPath)
+    kind match {
+      case Right(k) =>
+        // if it's not a storage, we don't care about removeData
+        if (removeData || !k.equalsIgnoreCase("storage")) {
+          // delete
+          withContext(
+            descriptor,
+            contextPath => Path.of(contextPath).toString,
+            None,
+            terraform =>
+              variablesFrom(descriptor) match {
+                case Left(l)     => ProvisionResult.failure(l)
+                case Right(vars) =>
+                  val result = terraform.doDestroy(vars)
+                  if (result.isSuccess)
+                    ProvisionResult.completed()
+                  else
+                    ProvisionResult.failure(result.errorMessages.map(ErrorMessage))
+              }
+          )
+        } else {
+          logger.warn(s"Component unprovisioned without actions due to the removeData field")
+          ProvisionResult.completed()
         }
-    )
+
+      case Left(ex) =>
+        logger.error("Error in parsing the component", ex)
+        ProvisionResult.failure(Seq(ErrorMessage("It was not possible to retrieve the kind of the component")))
+    }
+
+  }
 
   override def validate(descriptor: ComponentDescriptor): ProvisionResult = {
 
@@ -240,7 +260,9 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
     stateKeyMapper: Option[String => String] = None
   ): Either[Seq[ErrorMessage], TerraformResult] =
     backendConfigsFrom(descriptor, stateKeyMapper) match {
-      case Left(l)        => Left(l)
+      case Left(l)        =>
+        logger.error("error while reading backendConfigs", l)
+        Left(l)
       case Right(configs) =>
         val terraformInitResult = terraform.doInit(configs)
         if (!terraformInitResult.isSuccess) {

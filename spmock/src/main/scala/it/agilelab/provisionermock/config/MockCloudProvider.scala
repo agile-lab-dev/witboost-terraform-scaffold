@@ -10,7 +10,7 @@ class MockCloudProvider extends CloudProvider {
     ProvisionResult.completed()
   }
 
-  override def unprovision(descriptor: ComponentDescriptor): ProvisionResult = {
+  override def unprovision(descriptor: ComponentDescriptor, removeData: Boolean): ProvisionResult = {
     println("######### /unprovision #########")
     println(descriptor)
     ProvisionResult.completed()

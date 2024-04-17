@@ -71,7 +71,8 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
     body: ProvisioningRequest
   ): IO[Resource.UnprovisionResponse] = IO.blocking {
     val descriptor = YamlDescriptor(body.descriptor)
-    val result     = provision.doUnprovisioning(descriptor)
+    val removeData = body.removeData
+    val result     = provision.doUnprovisioning(descriptor, removeData)
     result.provisioningStatus match {
       case Running   => Resource.UnprovisionResponse.Accepted(result.componentToken.asString)
       case Completed => Resource.UnprovisionResponse.Ok(ProvisioningStatusMapper.from(result))

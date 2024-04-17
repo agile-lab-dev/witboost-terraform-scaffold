@@ -14,7 +14,7 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
   "The unprovision service" should "return a 'completed' result" in {
     val validator: DescriptorValidator     = _ => ValidationResult.create
     val compile                            = new CompileService(parser, validator)
-    val cProvider                          = CloudProviderStub.unprovision(_ => ProvisionResult.completed())
+    val cProvider                          = CloudProviderStub.unprovision((_, _) => ProvisionResult.completed())
     val deps                               = new SynchronousSpecificProvisionerDependencies {
       override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
@@ -33,7 +33,7 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
       field3: "3"
     """)
 
-    val provisionResult: ProvisionResult = provisionService.doUnprovisioning(yamlDescriptor)
+    val provisionResult: ProvisionResult = provisionService.doUnprovisioning(yamlDescriptor, removeData = true)
 
     provisionResult.provisioningStatus shouldBe ProvisioningStatus.Completed
     provisionResult.errors shouldBe empty
@@ -48,7 +48,7 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
       invalid-field: 1:2:3
     """)
 
-    val provisionResult: ProvisionResult = provision.doUnprovisioning(invalidYaml)
+    val provisionResult: ProvisionResult = provision.doUnprovisioning(invalidYaml, removeData = true)
 
     provisionResult.isSuccessful shouldBe false
     provisionResult.errors shouldBe Seq(InvalidDescriptor)
@@ -64,7 +64,7 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
       some-field: 1
     """)
 
-    val provisionResult: ProvisionResult = provision.doUnprovisioning(yamlDescriptor)
+    val provisionResult: ProvisionResult = provision.doUnprovisioning(yamlDescriptor, removeData = true)
 
     provisionResult.isSuccessful shouldBe false
     provisionResult.errors.size shouldBe validationResult.errors.size
@@ -74,7 +74,7 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
     val validator: DescriptorValidator = _ => ValidationResult.create
     val compile                        = new CompileService(parser, validator)
     val cloudProviderErrors            = Seq(ErrorMessage("some cloud error"))
-    val cProvider: CloudProvider       = CloudProviderStub.unprovision(_ => ProvisionResult.failure(cloudProviderErrors))
+    val cProvider: CloudProvider       = CloudProviderStub.unprovision((_, _) => ProvisionResult.failure(cloudProviderErrors))
     val deps                           = new SynchronousSpecificProvisionerDependencies {
       override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
@@ -91,7 +91,7 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
       some-field: 1
     """)
 
-    val provisionResult: ProvisionResult = provision.doUnprovisioning(yamlDescriptor)
+    val provisionResult: ProvisionResult = provision.doUnprovisioning(yamlDescriptor, removeData = true)
 
     provisionResult.isSuccessful shouldBe false
     provisionResult.errors.head shouldBe ErrorMessage("some cloud error")
@@ -119,7 +119,7 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
          field3: "3"
       """)
 
-    val provisionResult: ProvisionResult = provisionService.doUnprovisioning(yamlDescriptor)
+    val provisionResult: ProvisionResult = provisionService.doUnprovisioning(yamlDescriptor, removeData = true)
 
     provisionResult.isSuccessful shouldBe false
   }

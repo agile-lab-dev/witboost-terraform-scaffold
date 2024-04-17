@@ -401,7 +401,7 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
 
   "unprovisioning" should "succeed with variables from config" in {
 
-    val res = tfProvider.unprovision(descriptor)
+    val res = tfProvider.unprovision(descriptor, true)
     res.provisioningStatus shouldBe ProvisioningStatus.Completed
 
   }
