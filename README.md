@@ -341,6 +341,20 @@ For this reason, the mapping is demanded to the `principalMappingPlugin`, which 
 
 Here some [samples](principalmapping-samples/README.md) we provide.
 
+### Provisioning
+
+The `provision` endpoint takes care about creating the requested resources.
+
+In this phase, the `Data Product Owner` and the `Development Group` are extracted from the Data Product Descriptor and a mapping operation is executed, based on the configured [plugin](#Principal-Mapping-Plugin). If the mapping succeeds, the mapped principals are injected as a Terraform variable named `ownerPrincipals` (the entries are separated by `,`). For this reason, in every module you create, the following variable definition is needed:
+```terraform
+variable "ownerPrincipals" {
+  type        = string
+  description = "The identities that own the Data Product"
+  default = ""
+}
+```
+If you do not require this information, you can simply not use it in your terraform code.
+
 ### Unprovisioning
 
 The `unprovision` endpoint takes care about destroying the provisioned resources. The endpoint honours the `removeData` parameter, it will therefore skip the destroy operation for components of type `storage` when `false`.

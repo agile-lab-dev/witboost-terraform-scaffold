@@ -27,7 +27,8 @@ import org.http4s.{ Method, Request, Response, Status }
 
 class ProvisionHandlerTest extends HandlerTestBase {
   class ProvisionStub extends Provision {
-    override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult                            = ProvisionResult.completed()
+    override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult               =
+      ProvisionResult.completed()
     override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean): ProvisionResult               =
       ProvisionResult.completed()
     override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult =
@@ -37,7 +38,8 @@ class ProvisionHandlerTest extends HandlerTestBase {
 
   "The server" should "return a 200 - COMPLETED" in {
     val provisionStub: Provision   = new ProvisionStub {
-      override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = ProvisionResult.completed()
+      override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult =
+        ProvisionResult.completed()
     }
     val handler                    = new SpecificProvisionerHandler(provisionStub, null, null)
     val response: IO[Response[IO]] = new Resource[IO]()
@@ -54,7 +56,7 @@ class ProvisionHandlerTest extends HandlerTestBase {
 
   it should "return a 202 with a component token" in {
     val provisionStub: Provision   = new ProvisionStub {
-      override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult =
+      override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult =
         ProvisionResult.running(ComponentToken("some-token"))
     }
     val handler                    = new SpecificProvisionerHandler(provisionStub, null, null)
@@ -73,7 +75,8 @@ class ProvisionHandlerTest extends HandlerTestBase {
   it should "return a 400 with a list of errors" in {
     val errors                     = Seq(ErrorMessage("first error"), ErrorMessage("second error"))
     val provisionStub: Provision   = new ProvisionStub {
-      override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = ProvisionResult.failure(errors)
+      override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult =
+        ProvisionResult.failure(errors)
     }
     val handler                    = new SpecificProvisionerHandler(provisionStub, null, null)
     val response: IO[Response[IO]] = new Resource[IO]()
@@ -90,7 +93,7 @@ class ProvisionHandlerTest extends HandlerTestBase {
 
   it should "return a 500 with meaningful error on provision exception" in {
     val provisionStub: Provision   = new ProvisionStub {
-      override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult =
+      override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult =
         throw new IllegalArgumentException("error")
     }
     val handler                    = new SpecificProvisionerHandler(provisionStub, null, null)
@@ -124,7 +127,7 @@ class ProvisionHandlerTest extends HandlerTestBase {
 
   "The server" should "return a 200 - COMPLETED (with outputs)" in {
     val provisionStub: Provision   = new ProvisionStub {
-      override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = {
+      override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult = {
         val outputs: Seq[TerraformOutput] = Seq(
           TerraformOutput("foo", "bar")
         )
@@ -151,7 +154,7 @@ class ProvisionHandlerTest extends HandlerTestBase {
 
   "The server" should "return a 200 - COMPLETED (without outputs)" in {
     val provisionStub: Provision   = new ProvisionStub {
-      override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = {
+      override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult = {
         val outputs: Seq[TerraformOutput] = Seq()
         ProvisionResult.completed(outputs)
       }

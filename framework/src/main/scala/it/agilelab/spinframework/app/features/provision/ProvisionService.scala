@@ -21,17 +21,46 @@ class ProvisionService(
   private val useCaseTemplateIdJsonPath =
     "$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].useCaseTemplateId"
 
-  override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult = {
+  override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config = provisionerConfig): ProvisionResult = {
     val result: CompileResult = compile.doCompile(yamlDescriptor)
     if (!result.isSuccess) return ProvisionResult.failure(result.errors)
 
     val res = for {
       useCaseTemplateId <- JsonPathUtils.getValue(result.descriptor.toString, useCaseTemplateIdJsonPath)
       cloudProvider     <- specific.cloudProvider(useCaseTemplateId)
-    } yield cloudProvider
+      owners            <- extractOwners(result.descriptor)
+    } yield (cloudProvider, useCaseTemplateId, owners)
+
     res match {
-      case Right(cloudProvider) => cloudProvider.provision(result.descriptor)
-      case Left(message)        => ProvisionResult.failure(Seq(ErrorMessage(message)))
+      case Left(message)                                     => ProvisionResult.failure(Seq(ErrorMessage(message)))
+      case Right((cloudProvider, useCaseTemplateId, owners)) =>
+        val moduleConfig = cfg.getConfig(s"""terraform."$useCaseTemplateId"""")
+        principalMapperPluginLoader.load(moduleConfig) match {
+          case Success(m) =>
+            m.map(owners).partition(_._2.isLeft) match {
+              // Fail if there's one failed mapping
+              case (l, _) if l.nonEmpty =>
+                ProvisionResult.failure(
+                  l.map(e =>
+                    ErrorMessage(
+                      s"An error occurred while mapping the subject `${e._1}`. Detailed error: ${e._2.left.getOrElse(null).getMessage}"
+                    )
+                  ).toSeq
+                )
+              case (_, r)               =>
+                val mappedOwners = r.map(_._2.getOrElse(null)).toSet
+                cloudProvider.provision(result.descriptor, mappedOwners)
+            }
+          case Failure(f) =>
+            logger.error("Error in doProvisioning", f)
+            ProvisionResult.failure(
+              Seq(
+                ErrorMessage(
+                  s"An unexpected error occurred while instantiating the Principal Mapper Plugin. Please try again later. If the issue still persists, contact the platform team for assistance! Detailed error: ${f.getMessage}"
+                )
+              )
+            )
+        }
     }
   }
 
@@ -114,4 +143,15 @@ class ProvisionService(
     }
 
   }
+
+  private def extractOwners(descriptor: ComponentDescriptor): Either[String, Set[String]] = {
+    val dpOwnerJsonPath  = "$.dataProduct.dataProductOwner"
+    val devGroupJsonPath = "$.dataProduct.devGroup"
+    for {
+      dpOwner          <- JsonPathUtils.getValue(descriptor.toString, dpOwnerJsonPath)
+      devGroup         <- JsonPathUtils.getValue(descriptor.toString, devGroupJsonPath)
+      devGroupPrefixed <- if (devGroup.startsWith("group:")) Right(devGroup) else Right("group:".concat(devGroup))
+    } yield Set(dpOwner, devGroupPrefixed)
+  }
+
 }

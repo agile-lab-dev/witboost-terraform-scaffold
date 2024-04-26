@@ -14,9 +14,10 @@ trait CloudProvider {
   /** Interprets the descriptor and translates it to a provision request for the cloud provider.
     *
     * @param descriptor contains the details of the resources to allocate on the cloud
+    * @param mappedOwners the mapped principals that are owners of the DP
     * @return the state of the operation
     */
-  def provision(descriptor: ComponentDescriptor): ProvisionResult
+  def provision(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult
 
   /** Receives the component descriptor and forwards an unprovision request to the cloud provider.
     *

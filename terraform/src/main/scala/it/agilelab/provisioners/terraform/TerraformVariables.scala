@@ -25,7 +25,7 @@ object TerraformVariables {
   *
   * @param variables a map the contains all the variables.
   */
-class TerraformVariables(variables: Map[String, String]) {
+case class TerraformVariables(variables: Map[String, String]) {
 
   /** Converts each variable in a Terraform compliant format.
     * Ex. the variable ("file_content" -> "hello, guy!") is translated to

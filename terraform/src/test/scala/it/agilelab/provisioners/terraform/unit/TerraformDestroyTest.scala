@@ -4,7 +4,7 @@ import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.noLog
 import it.agilelab.provisioners.terraform.TerraformVariables.noVariable
 import it.agilelab.provisioners.terraform.{ ProcessResult, _ }
-import it.agilelab.spinframework.app.features.compiler.{ ParserFactory, YamlDescriptor }
+import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ParserFactory, YamlDescriptor }
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar.when
 import org.mockito.{ ArgumentMatchersSugar, IdiomaticMockito, Mockito }
@@ -321,6 +321,46 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers with Idiomat
     Mockito.verifyNoInteractions(mockProcessor.run(*))
     res.isSuccessful shouldBe true
 
+  }
+
+  it should "perform destroy passing the ownerPrincipals variable" in {
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Name Surname
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |        description: Output Port for vaccinations data using Hasura
+        |        name: Hasura Output Port
+        |        fullyQualifiedName: Hasura Output Port
+        |        dataContract:
+        |          schema:
+        |            - name: date
+        |              dataType: DATE
+        |            - name: location_key
+        |              dataType: TEXT
+        |              constraint: PRIMARY_KEY
+        |        specific:
+        |            customTableName: healthcare_vaccinations_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+    val mockProcessor                   = new MockProcessor(0, "")
+    val terraformBuilder                = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+    val terraformModule                 =
+      TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.dataProductOwnerDisplayName"), "key")
+    val tfProvider                      = new TfProvider(terraformBuilder, terraformModule)
+
+    val res = tfProvider.unprovision(descriptor, removeData = false)
+
+    res.isSuccessful shouldBe true
+    mockProcessor.command should include(s"""-var ownerPrincipals=""""")
   }
 
 }

@@ -100,7 +100,7 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
   "The unprovision service" should "return a failure for a descriptor without useCaseTemplateId present" in {
     val validator: DescriptorValidator     = _ => ValidationResult.create
     val compile                            = new CompileService(parser, validator)
-    val cProvider                          = CloudProviderStub.provision(_ => ProvisionResult.completed())
+    val cProvider                          = CloudProviderStub.provision((_, _) => ProvisionResult.completed())
     val deps                               = new SynchronousSpecificProvisionerDependencies {
       override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)

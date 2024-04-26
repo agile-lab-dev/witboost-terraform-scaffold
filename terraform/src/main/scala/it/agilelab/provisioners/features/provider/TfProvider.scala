@@ -50,7 +50,7 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
         }
     }
 
-  override def provision(descriptor: ComponentDescriptor): ProvisionResult =
+  override def provision(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult =
     withContext(
       descriptor,
       contextPath => Path.of(contextPath).toString,
@@ -59,7 +59,8 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
         variablesFrom(descriptor) match {
           case Left(l)     => ProvisionResult.failure(l)
           case Right(vars) =>
-            val applyResult = terraform.doApply(vars)
+            val extendedVars = TerraformVariables(vars.variables + ("ownerPrincipals" -> mappedOwners.mkString(",")))
+            val applyResult  = terraform.doApply(extendedVars)
             if (applyResult.isSuccess) {
               ProvisionResult.completed(
                 applyResult.terraformOutputs match {
@@ -94,7 +95,9 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
               variablesFrom(descriptor) match {
                 case Left(l)     => ProvisionResult.failure(l)
                 case Right(vars) =>
-                  val result = terraform.doDestroy(vars)
+                  // when unprovisioning we can pass an empty set for ownerPrincipals, without doing the mapping
+                  val extendedVars = TerraformVariables(vars.variables + ("ownerPrincipals" -> ""))
+                  val result       = terraform.doDestroy(extendedVars)
                   if (result.isSuccess)
                     ProvisionResult.completed()
                   else
@@ -106,9 +109,10 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
           ProvisionResult.completed()
         }
 
-      case Left(ex) =>
-        logger.error("Error in parsing the component", ex)
-        ProvisionResult.failure(Seq(ErrorMessage("It was not possible to retrieve the kind of the component")))
+      case Left(error) =>
+        val errorMessage = s"It was not possible to retrieve the kind of the component to unprovision. Details: $error"
+        logger.error(errorMessage)
+        ProvisionResult.failure(Seq(ErrorMessage(errorMessage)))
     }
 
   }
@@ -129,7 +133,7 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
     val validateAclModule: ProvisionResult = if (aclModuleExists) {
       val r = withContext(
         descriptor,
-        _ => aclPath.toString,
+        contextPath => Path.of(contextPath, "acl").toString,
         None,
         terraform => {
           // At this time we don't have principals, hence a "tf plan" is not possible
@@ -158,7 +162,7 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
     val validateMainModule: ProvisionResult = {
       val r = withContext(
         descriptor,
-        _ => tfPath.toString,
+        contextPath => Path.of(contextPath).toString,
         None,
         terraform =>
           variablesFrom(descriptor) match {

@@ -19,6 +19,8 @@ class AsynchronousSpMockTest extends SpMockSuite {
         descriptorKind = DescriptorKind.ComponentDescriptor,
         descriptor = """
                        |dataProduct:
+                       |  dataProductOwner: user:name.surname_email.com
+                       |  devGroup: group:dev
                        |  components:
                        |    - kind: workload
                        |      id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload

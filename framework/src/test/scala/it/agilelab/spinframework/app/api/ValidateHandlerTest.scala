@@ -23,7 +23,8 @@ import org.http4s.{ Method, Request, Response, Status }
 class ValidateHandlerTest extends HandlerTestBase {
 
   class ProvisionStub extends Provision {
-    override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult                            = ProvisionResult.completed()
+    override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult               =
+      ProvisionResult.completed()
     override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean): ProvisionResult               =
       ProvisionResult.completed()
     override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult =
@@ -49,7 +50,8 @@ class ValidateHandlerTest extends HandlerTestBase {
   it should "return a 200 with a list of errors when the validation fails" in {
     val errors           = Seq(ErrorMessage("error1"), ErrorMessage("error2"))
     val failingProvision = new Provision {
-      override def doProvisioning(yamlDescriptor: YamlDescriptor): ProvisionResult                            = ProvisionResult.completed()
+      override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult               =
+        ProvisionResult.completed()
       override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean): ProvisionResult               =
         ProvisionResult.completed()
       override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult =

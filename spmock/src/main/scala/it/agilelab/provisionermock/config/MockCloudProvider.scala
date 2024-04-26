@@ -4,7 +4,7 @@ import it.agilelab.spinframework.app.features.compiler.ComponentDescriptor
 import it.agilelab.spinframework.app.features.provision.{ CloudProvider, ProvisionResult }
 
 class MockCloudProvider extends CloudProvider {
-  override def provision(descriptor: ComponentDescriptor): ProvisionResult = {
+  override def provision(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult = {
     println("######### /provision #########")
     println(descriptor)
     ProvisionResult.completed()

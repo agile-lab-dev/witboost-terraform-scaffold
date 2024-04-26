@@ -268,7 +268,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
       TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.dataProductOwnerDisplayName"), "key")
 
     val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
-    val res             = tfProvider.provision(descriptor)
+    val res             = tfProvider.provision(descriptor, Set.empty)
 
     res.outputs.size shouldBe 1
     res.outputs.head.name shouldBe "fiz"
@@ -337,7 +337,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map.empty, "")
 
     val tfProvider = new TfProvider(terraformBuilder, terraformModule)
-    val res        = tfProvider.provision(descriptor)
+    val res        = tfProvider.provision(descriptor, Set.empty)
 
     res.outputs.size shouldBe 0
 
@@ -404,10 +404,51 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val terraformModule = TerraformModule("doesnt-exist", Map.empty, Map.empty, "")
 
     val tfProvider = new TfProvider(terraformBuilder, terraformModule)
-    val res        = tfProvider.provision(descriptor)
+    val res        = tfProvider.provision(descriptor, Set.empty)
 
     res.isSuccessful shouldBe false
 
+  }
+
+  it should "perform apply passing the ownerPrincipals variable" in {
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Name Surname
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |        description: Output Port for vaccinations data using Hasura
+        |        name: Hasura Output Port
+        |        fullyQualifiedName: Hasura Output Port
+        |        dataContract:
+        |          schema:
+        |            - name: date
+        |              dataType: DATE
+        |            - name: location_key
+        |              dataType: TEXT
+        |              constraint: PRIMARY_KEY
+        |        specific:
+        |            customTableName: healthcare_vaccinations_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+    val mockProcessor                   = new MockProcessor(0, "")
+    val terraformBuilder                = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+    val terraformModule                 =
+      TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.dataProductOwnerDisplayName"), "key")
+    val tfProvider                      = new TfProvider(terraformBuilder, terraformModule)
+    val mappedOwners                    = Set("user.name@email.com", "dev")
+
+    val res = tfProvider.provision(descriptor, mappedOwners)
+
+    res.isSuccessful shouldBe true
+    mockProcessor.command should include(s"""-var ownerPrincipals="user.name@email.com,dev"""")
   }
 
 }
