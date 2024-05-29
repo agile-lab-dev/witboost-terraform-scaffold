@@ -12,7 +12,7 @@ class BackendConfigTest extends AnyFlatSpec with should.Matchers with FrameworkT
   private val descriptor: ComponentDescriptor = descriptorFrom(
     """
       |dataProduct:
-      |    dataProductOwnerDisplayName: Nicolò Bidotti
+      |    dataProductOwnerDisplayName: Jhon Doe
       |    intField: 33
       |    doubleField: 33.9
       |    environment: development
@@ -22,9 +22,9 @@ class BackendConfigTest extends AnyFlatSpec with should.Matchers with FrameworkT
       |    id: urn:dmb:dp:healthcare:vaccinations-nb:0
       |    description: DP about vaccinations
       |    devGroup: popeye
-      |    ownerGroup: nicolo.bidotti_agilelab.it
-      |    dataProductOwner: user:nicolo.bidotti_agilelab.it
-      |    email: nicolo.bidotti@gmail.com
+      |    ownerGroup: jhon.doe_agilelab.it
+      |    dataProductOwner: user:jhon.doe_agilelab.it
+      |    email: jhon.doe@gmail.com
       |    version: 0.1.0
       |    fullyQualifiedName: Vaccinations NB
       |    name: Vaccinations NB

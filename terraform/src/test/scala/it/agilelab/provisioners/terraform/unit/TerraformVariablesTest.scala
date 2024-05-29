@@ -1,5 +1,7 @@
 package it.agilelab.provisioners.terraform.unit
 
+import io.circe
+import io.circe.parser
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.{ Terraform, TerraformBuilder, TerraformModule, TerraformModuleLoader }
 import it.agilelab.spinframework.app.features.compiler.ComponentDescriptor
@@ -22,7 +24,7 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
   private val descriptor: ComponentDescriptor = descriptorFrom(
     """
       |dataProduct:
-      |    dataProductOwnerDisplayName: Nicolò Bidotti
+      |    dataProductOwnerDisplayName: Jhon Doe
       |    intField: 33
       |    doubleField: 33.9
       |    environment: development
@@ -32,9 +34,9 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
       |    id: urn:dmb:dp:healthcare:vaccinations-nb:0
       |    description: DP about vaccinations
       |    devGroup: popeye
-      |    ownerGroup: nicolo.bidotti_agilelab.it
-      |    dataProductOwner: user:nicolo.bidotti_agilelab.it
-      |    email: nicolo.bidotti@gmail.com
+      |    ownerGroup: jhon.doe_agilelab.it
+      |    dataProductOwner: user:jhon.doe_agilelab.it
+      |    email: jhon.doe@gmail.com
       |    version: 0.1.0
       |    fullyQualifiedName: Vaccinations NB
       |    name: Vaccinations NB
@@ -46,156 +48,6 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
       |    tags: []
       |    specific: {}
       |    components:
-      |      - kind: workload
-      |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
-      |        description: Airbyte workload
-      |        name: Airbyte Workload
-      |        fullyQualifiedName: Airbyte Workload
-      |        version: 0.0.0
-      |        infrastructureTemplateId: urn:dmb:itm:airbyte-provisioner:0
-      |        useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
-      |        dependsOn:
-      |          - urn:dmb:cmp:healthcare:vaccinations-nb:0:snowflake-storage-vaccinations
-      |          - urn:dmb:cmp:healthcare:vaccinations-nb:0:dbt-transformation-workload
-      |        platform: Snowflake
-      |        technology: airbyte
-      |        workloadType: batch
-      |        connectionType: DataPipeline
-      |        tags: []
-      |        readsFrom: []
-      |        specific:
-      |          source:
-      |            name: healthcare.vaccinations-nb.0.File
-      |            connectionConfiguration:
-      |              url: https://storage.googleapis.com/covid19-open-data/v3/latest/vaccinations.csv
-      |              format: csv
-      |              provider:
-      |                storage: HTTPS
-      |                user_agent: true
-      |              dataset_name: vaccinations_raw
-      |          destination:
-      |            name: healthcare.vaccinations-nb.0.Snowflake
-      |            connectionConfiguration:
-      |              database: HEALTHCARE
-      |              schema: VACCINATIONSNB_0
-      |          connection:
-      |            name: healthcare.vaccinations-nb.0.Vaccinations NB File <> Snowflake
-      |            dbtGitUrl: https://gitlab.com/AgileDmbSandbox/popeye/mesh.repository/sandbox/vaccinations_nb/dbt_transformation_workload.git
-      |      - kind: workload
-      |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airflow-workload
-      |        description: Scheduling for the Vaccinations DP
-      |        name: Airflow Workload
-      |        fullyQualifiedName: Airflow Workload
-      |        version: 0.0.0
-      |        infrastructureTemplateId: urn:dmb:itm:aws-workload-airflow-provisioner:0
-      |        useCaseTemplateId: urn:dmb:utm:aws-airflow-workload-template:0.0.0
-      |        dependsOn:
-      |          - urn:dmb:cmp:healthcare:vaccinations-nb:0:snowflake-output-port
-      |          - urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
-      |        platform: AWS
-      |        technology: airflow
-      |        workloadType: batch
-      |        connectionType: DataPipeline
-      |        tags: []
-      |        readsFrom: []
-      |        specific:
-      |          scheduleCron: 5 5 * * *
-      |          dagName: airbyte_snowflake_dag.py
-      |          destinationPath: dags/
-      |          sourcePath: source/
-      |          bucketName: aws-ia-mwaa-eu-west-1-621415221771
-      |      - kind: workload
-      |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:asdasd
-      |        description: qqqq
-      |        name: asdasd
-      |        fullyQualifiedName: qweqwe
-      |        version: 0.0.0
-      |        infrastructureTemplateId: urn:dmb:itm:aws-workload-snowflake-sql-provisioner:0
-      |        useCaseTemplateId: urn:dmb:utm:aws-workload-snowflake-sql-template:0.0.0
-      |        dependsOn: []
-      |        platform: AWS
-      |        technology: airflow
-      |        workloadType: batch
-      |        connectionType: DataPipeline
-      |        tags: []
-      |        readsFrom: []
-      |        specific: {}
-      |      - kind: workload
-      |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:dbt-transformation-workload
-      |        description: DBT workload on Snowflake via Airbyte
-      |        name: DBT Transformation Workload
-      |        fullyQualifiedName: DBT Transformation Workload
-      |        version: 0.0.0
-      |        infrastructureTemplateId: urn:dmb:itm:aws-workload-dbt-transformation-provisioner:0
-      |        useCaseTemplateId: urn:dmb:utm:aws-workload-dbt-transformation-template:0.0.0
-      |        dependsOn: []
-      |        platform: AWS
-      |        technology: airflow
-      |        workloadType: batch
-      |        connectionType: DataPipeline
-      |        tags: []
-      |        readsFrom: []
-      |        specific:
-      |          dbtProjectName: dmb_dbt_transform
-      |          gitUrl: https://gitlab.com/AgileDmbSandbox/popeye/mesh.repository/sandbox/vaccinations_nb/dbt_transformation_workload.git
-      |      - kind: outputport
-      |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:snowflake-output-port
-      |        description: Output Port for vaccinations data using Snowflake
-      |        name: Snowflake Output Port
-      |        fullyQualifiedName: Snowflake Output Port
-      |        version: 0.0.0
-      |        infrastructureTemplateId: urn:dmb:itm:snowflake-outputport-provisioner:0
-      |        useCaseTemplateId: urn:dmb:utm:snowflake-outputport-template:0.0.0
-      |        dependsOn:
-      |          - urn:dmb:cmp:healthcare:vaccinations-nb:0:snowflake-storage-vaccinations
-      |        platform: Snowflake
-      |        technology: Snowflake
-      |        outputPortType: SQL
-      |        creationDate: 2023-03-02T15:54:17.447Z
-      |        startDate: 2023-03-02T15:54:17.447Z
-      |        dataContract:
-      |          schema:
-      |            - name: date
-      |              dataType: DATE
-      |            - name: location_key
-      |              dataType: TEXT
-      |              constraint: PRIMARY_KEY
-      |            - name: new_persons_vaccinated
-      |              dataType: NUMBER
-      |            - name: new_persons_fully_vaccinated
-      |              dataType: NUMBER
-      |            - name: new_vaccine_doses_administered
-      |              dataType: NUMBER
-      |            - name: cumulative_persons_vaccinated
-      |              dataType: NUMBER
-      |            - name: cumulative_persons_fully_vaccinated
-      |              dataType: NUMBER
-      |            - name: cumulative_vaccine_doses_administered
-      |              dataType: NUMBER
-      |        tags: []
-      |        sampleData: {}
-      |        semanticLinking: []
-      |        specific:
-      |          viewName: vaccinations_clean_view
-      |          tableName: vaccinations_clean
-      |          database: HEALTHCARE
-      |          schema: VACCINATIONSNB_0
-      |      - kind: storage
-      |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:snowflake-storage-vaccinations
-      |        description: Vaccinations data storage (schema) in Snowflake
-      |        name: Snowflake Storage Vaccinations
-      |        fullyQualifiedName: Snowflake Storage Vaccinations
-      |        version: 0.0.0
-      |        infrastructureTemplateId: urn:dmb:itm:snowflake-storage-provisioner:0
-      |        useCaseTemplateId: urn:dmb:utm:snowflake-storage-template:0.0.0
-      |        dependsOn: []
-      |        platform: Snowflake
-      |        technology: Snowflake
-      |        StorageType: Database
-      |        tags: []
-      |        specific:
-      |          database: HEALTHCARE
-      |          schema: VACCINATIONSNB_0
       |      - kind: outputport
       |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
       |        description: Output Port for vaccinations data using Hasura
@@ -234,6 +86,12 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
       |        sampleData: {}
       |        semanticLinking: []
       |        specific:
+      |            complex:
+      |              foo: bar
+      |              fuz: buz
+      |            list:
+      |              - harry
+      |              - potter
       |            customTableName: healthcare_vaccinationsnb_0_hasuraoutputportvaccinations
       |            select: healthcare_vaccinationsnb_0_hasuraoutputportvaccinations
       |            selectByPk: healthcare_vaccinationsnb_0_hasuraoutputportvaccinations_by_pk
@@ -272,8 +130,42 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
     val vars = tfProvider.variablesFrom(descriptor, variableMappings)
 
     vars.isLeft shouldBe false
-    vars.getOrElse(null).toOptions should (include("""-var some_type="location_key"""") and include(
-      """-var some_double="33.9""""
+    vars.getOrElse(null).toOptions should (include("""-var some_type='location_key'""") and include(
+      """-var some_double='33.9'"""
+    ))
+
+  }
+
+  "variablesFrom" should "return correct complex vars" in {
+
+    val variableMappings = Some(
+      Map(
+        "complex" -> "$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].specific.complex"
+      )
+    )
+
+    val vars = tfProvider.variablesFrom(descriptor, variableMappings)
+
+    vars.isLeft shouldBe false
+    vars.getOrElse(null).toOptions.replace("\n", "") should (include(
+      """-var complex='{  "foo" : "bar",  "fuz" : "buz"}'"""
+    ))
+
+  }
+
+  "variablesFrom" should "return correct var of type list" in {
+
+    val variableMappings = Some(
+      Map(
+        "list" -> "$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].specific.list"
+      )
+    )
+
+    val vars = tfProvider.variablesFrom(descriptor, variableMappings)
+    print(vars.toOption.getOrElse(null).toOptions)
+    vars.isLeft shouldBe false
+    vars.getOrElse(null).toOptions.replace("\n", "") should (include(
+      """-var list='[ "harry", "potter" ]'"""
     ))
 
   }
@@ -302,7 +194,7 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
     val vars = tfProvider.variablesFrom(descriptor)
 
     vars.isLeft shouldBe false
-    vars.getOrElse(null).toOptions should (include("""-var some_type="location_key""""))
+    vars.getOrElse(null).toOptions should (include("""-var some_type='location_key'"""))
 
   }
 
@@ -449,6 +341,138 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
 
     p.isInvalidInput shouldBe false
     p.descriptor.sub("info").sub("publicInfo").succeeded shouldBe true
+
+  }
+
+  private val descriptor3: ComponentDescriptor = descriptorFrom(
+    """
+      |dataProduct:
+      |    dataProductOwnerDisplayName: Jhon Doe
+      |    intField: 33
+      |    doubleField: 33.9
+      |    environment: development
+      |    domain: healthcare
+      |    kind: dataproduct
+      |    domainId: urn:dmb:dmn:healthcare
+      |    id: urn:dmb:dp:healthcare:vaccinations-nb:0
+      |    components:
+      |      - kind: outputport
+      |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+      |        description: Output Port for vaccinations data using Hasura
+      |        name: Hasura Output Port
+      |        fullyQualifiedName: Hasura Output Port
+      |        version: 0.0.0
+      |        infrastructureTemplateId: urn:dmb:itm:hasura-outputport-provisioner:0
+      |        useCaseTemplateId: urn:dmb:utm:hasura-outputport-template:0.0.0
+      |        dependsOn:
+      |          - urn:dmb:cmp:healthcare:vaccinations-nb:0:snowflake-output-port
+      |        platform: Hasura
+      |        technology: Hasura
+      |        outputPortType: GraphQL
+      |        creationDate: 2023-06-12T12:52:11.737Z
+      |        startDate: 2023-06-12T12:52:11.737Z
+      |        tags: []
+      |        sampleData: {}
+      |        semanticLinking: []
+      |        specific:
+      |            adls:
+      |             sa1:
+      |                resourcetype: dls
+      |                account_tier: Standard
+      |                account_kind: StorageV2
+      |                access_tier: Hot
+      |                account_replication_type: RAGRS
+      |                min_tls_version: TLS1_2
+      |                is_hns_enabled: true
+      |                rand_value: dls01
+      |                sas_policy_expiration: 00.08:00:00
+      |                sas_expiration_action: Log
+      |                dls:
+      |                   - raw
+      |                   - enr
+      |                   - dev
+      |             sa2:
+      |                resourcetype: dls
+      |                account_tier: Standard
+      |                account_kind: StorageV2
+      |                access_tier: Hot
+      |                account_replication_type: RAGRS
+      |                min_tls_version: TLS1_2
+      |                is_hns_enabled: true
+      |                rand_value: dls01
+      |                sas_policy_expiration: 00.08:00:00
+      |                sas_expiration_action: Log
+      |                dls:
+      |                   - raw
+      |                   - enr
+      |                   - dev
+      |                private_link_resource_access:
+      |                   enr:
+      |                     private_link_access:
+      |                       - endpoint_resource_id: /subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/Fabric/providers/Microsoft.Fabric/workspaces/c8628ad0-3e1c-46ba-a7f4-1288c612a172
+      |                   dev:
+      |                     private_link_access:
+      |                       - endpoint_resource_id: /subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/Fabric/providers/Microsoft.Fabric/workspaces/c8628ad0-3e1c-46ba-a7f4-1288c612a170
+      |
+      |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+      |
+      |""".stripMargin
+  )
+
+  "variablesFrom" should "return correct complex vars with nested maps and lists" in {
+
+    val variableMappings = Some(
+      Map(
+        "adls" -> "$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].specific.adls"
+      )
+    )
+
+    val vars = tfProvider.variablesFrom(descriptor3, variableMappings)
+    vars.isLeft shouldBe false
+
+    val s    = vars.getOrElse(null).variables.getOrElse("adls", null)
+    val json = parser.parse(s).getOrElse(null)
+
+    json.hcursor
+      .downField("sa2")
+      .downField("private_link_resource_access")
+      .downField("enr")
+      .downField("private_link_access")
+      .values
+      .orNull
+      .size shouldBe 1
+    json.hcursor
+      .downField("sa2")
+      .downField("private_link_resource_access")
+      .downField("dev")
+      .downField("private_link_access")
+      .values
+      .orNull
+      .size shouldBe 1
+    json.hcursor.downField("sa2").downField("dls").values.orNull.size shouldBe 3
+
+  }
+
+  private val descriptor4: ComponentDescriptor = descriptorFrom(
+    """
+      |check:
+      |  bad: it's not so ok
+      |  good: this is ok
+    """.stripMargin
+  )
+
+  "variablesFrom" should "return correct complex var and escape single quote" in {
+
+    val variableMappings = Some(
+      Map(
+        "check" -> "$.check"
+      )
+    )
+
+    val vars = tfProvider.variablesFrom(descriptor4, variableMappings)
+    vars.isLeft shouldBe false
+
+    vars.getOrElse(null).toOptions should include("it\\'s not so ok")
 
   }
 

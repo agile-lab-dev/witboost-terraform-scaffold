@@ -45,7 +45,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     )
 
     mockProcessor.command should include(
-      s"""terraform -chdir=${tempFolder} apply -var var1="value1" -var var2="value2""""
+      s"""terraform -chdir=${tempFolder} apply -var var1='value1' -var var2='value2'"""
     )
   }
 
@@ -234,7 +234,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val descriptor: ComponentDescriptor = YamlDescriptor(
       """
         |dataProduct:
-        |    dataProductOwnerDisplayName: Nicolò Bidotti
+        |    dataProductOwnerDisplayName: Jhon Doe
         |    intField: 33
         |    doubleField: 33.9
         |    components:
@@ -304,7 +304,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val descriptor: ComponentDescriptor = YamlDescriptor(
       """
         |dataProduct:
-        |    dataProductOwnerDisplayName: Nicolò Bidotti
+        |    dataProductOwnerDisplayName: Jhon Doe
         |    intField: 33
         |    doubleField: 33.9
         |    components:
@@ -371,7 +371,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val descriptor: ComponentDescriptor = YamlDescriptor(
       """
         |dataProduct:
-        |    dataProductOwnerDisplayName: Nicolò Bidotti
+        |    dataProductOwnerDisplayName: Jhon Doe
         |    intField: 33
         |    doubleField: 33.9
         |    components:
@@ -448,7 +448,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val res = tfProvider.provision(descriptor, mappedOwners)
 
     res.isSuccessful shouldBe true
-    mockProcessor.command should include(s"""-var ownerPrincipals="user.name@email.com,dev"""")
+    mockProcessor.command should include(s"""-var ownerPrincipals='user.name@email.com,dev'""")
   }
 
 }

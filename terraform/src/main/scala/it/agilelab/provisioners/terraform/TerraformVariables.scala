@@ -38,7 +38,10 @@ case class TerraformVariables(variables: Map[String, String]) {
 
   private def buildOption(variable: (String, String)): String = {
     val (name, value) = variable
-    val valueInApexes = s""""$value""""
-    s"-var $name=$valueInApexes"
+    // wrapping in single quotes is mandatory, in order to allow complex values, and to be sure not to brake the terraform command if single quotes are present in the value
+    // This can lead to unwanted behaviour, that is, the escape will be propagated in the resource itself
+    // This can only be managed at TF module level (i.e. by removing it)
+    val escapedValue  = value.replace("'", "\\'")
+    s"-var $name='$escapedValue'"
   }
 }

@@ -38,7 +38,7 @@ class TerraformPlanTest extends AnyFlatSpec with should.Matchers {
       )
     )
 
-    mockProcessor.command should include("terraform -chdir=folder plan -var var1=\"value1\" -var var2=\"value2\"")
+    mockProcessor.command should include("terraform -chdir=folder plan -var var1='value1' -var var2='value2'")
   }
 
   "Terraform" should "perform plan and report an error" in {

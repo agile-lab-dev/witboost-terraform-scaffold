@@ -162,7 +162,37 @@ descriptorToVariablesMapping = {
 The following vars would be produced
 
 ```terraform
--var account_name="xys-12345" -var foo="xyz"
+-var account_name='xys-12345' -var foo='xyz'
+```
+
+In the previous example, both mappings were addressing a YAML leaf of the descriptor. By pointing to a YAML node instead, the full YAML object is extracted as a terraform variable.
+
+For example, given the following descriptor
+
+```yaml
+dataProduct:
+  name: xys-12345
+  specific:
+    complex:
+      foo: bar
+      fuz: buz
+    list:
+      - buzz
+      - lightyear
+```
+and the following configuration
+
+```
+descriptorToVariablesMapping = {
+    complex = "$.dataProduct.specific.complex"
+    list = "$.dataProduct.specific.list"
+}
+```
+
+The following vars would be produced
+
+```terraform
+-var complex='{"foo":"bar", "fuz":"buz"}' -var list='["buzz", "lightyear"]'
 ```
 
 #### componentIdToProvision
@@ -200,7 +230,7 @@ descriptorToVariablesMapping = {
 The following var would be produced:
 
 ```terraform
--var resource_group_name="zoo"
+-var resource_group_name='zoo'
 ```
 
 ### State management

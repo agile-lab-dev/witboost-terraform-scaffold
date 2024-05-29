@@ -49,7 +49,7 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers with Idiomat
     )
 
     mockProcessor.command should include(
-      "terraform -chdir=folder destroy -var var1=\"value1\" -var var2=\"value2\""
+      "terraform -chdir=folder destroy -var var1='value1' -var var2='value2'"
     )
   }
 
@@ -360,7 +360,7 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers with Idiomat
     val res = tfProvider.unprovision(descriptor, removeData = false)
 
     res.isSuccessful shouldBe true
-    mockProcessor.command should include(s"""-var ownerPrincipals=""""")
+    mockProcessor.command should include(s"""-var ownerPrincipals=''""")
   }
 
 }

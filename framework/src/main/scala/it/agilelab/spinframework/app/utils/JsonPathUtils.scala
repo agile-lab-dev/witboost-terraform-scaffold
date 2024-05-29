@@ -35,7 +35,11 @@ object JsonPathUtils {
             s"Terraform variables could not be extracted from the descriptor. No results for path: $jsonPathReplaced"
           )
         } else {
-          Right(node.get(0).asText())
+          val x = node.get(0)
+          Right(
+            if (x.isContainerNode) x.toPrettyString
+            else x.asText
+          )
         }
       case Failure(ex: JsonPathException) =>
         Left(
