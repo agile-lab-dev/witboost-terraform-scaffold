@@ -1,8 +1,8 @@
 package it.agilelab.provisioners.terraform
 
-import com.fasterxml.jackson.annotation
 import io.circe.generic.extras._
-import io.circe.{ parser, Decoder, Encoder }
+import io.circe.parser
+import org.slf4j.{ Logger, LoggerFactory }
 
 /** The result coming from the execution of a Terraform command.
   *
@@ -11,61 +11,9 @@ import io.circe.{ parser, Decoder, Encoder }
   */
 class TerraformResult(processResult: ProcessResult) {
 
+  final private val logger: Logger = LoggerFactory.getLogger(getClass.getName)
+
   implicit val customConfig: Configuration = Configuration.default.withSnakeCaseMemberNames
-
-  @ConfiguredJsonCodec
-  case class Snippet(
-    context: Option[String],
-    code: String,
-    startLine: Int,
-    highlightStartOffset: Int,
-    highlightEndOffset: Int,
-    values: List[String]
-  )
-  @ConfiguredJsonCodec
-  case class Position(line: Int, column: Int, byte: Int)
-  @ConfiguredJsonCodec
-  case class Range(filename: String, start: Position, end: Position)
-  @ConfiguredJsonCodec
-  case class Diagnostic(severity: String, summary: String, detail: String, range: Range, snippet: Snippet)
-
-  @ConfiguredJsonCodec
-  case class ErrorResponse(
-    @JsonKey("@level") level: String,
-    @JsonKey("@message") message: String,
-    @JsonKey("@module") module: String,
-    @JsonKey("@timestamp") timestamp: String,
-    @JsonKey("diagnostic") diagnostic: Diagnostic,
-    @JsonKey("type") typeOf: String
-  )
-
-  @ConfiguredJsonCodec
-  case class ValidationResponse(
-    @JsonKey("format_version") formatVersion: String,
-    @JsonKey("valid") valid: Boolean,
-    @JsonKey("error_count") errorCount: Int,
-    @JsonKey("warning_count") warningCount: Int,
-    @JsonKey("diagnostics") diagnostics: List[Diagnostic]
-  )
-
-  @ConfiguredJsonCodec
-  case class Output(sensitive: Boolean, @JsonKey("type") typeOf: String, value: String)
-
-  @ConfiguredJsonCodec
-  case class OutputMessage(
-    @JsonKey("@level") level: String,
-    @JsonKey("@message") message: String,
-    @JsonKey("@module") module: String,
-    @JsonKey("@timestamp") timestamp: String,
-    @JsonKey("outputs") outputs: Map[String, Output],
-    @JsonKey("type") typeOf: String
-  )
-
-  /** Allows to establish if the execution has been successful or not.
-    *
-    * @return true if the execution of the command has raised no error.
-    */
-  def isSuccess: Boolean = processResult.exitCode == 0
 
   /** Builds a single string that encompass all the output returned by Terraform
     *  on the execution of the command.
@@ -129,18 +77,14 @@ class TerraformResult(processResult: ProcessResult) {
       val result = processResult.buildOutputString
         .split("\n")
         .toList
-        .filter(x => x.contains("diagnostic"))
-        .flatMap { x =>
-          parser.parse(x).flatMap(_.as[ErrorResponse]) match {
-            case Right(value) =>
-              val messageString  = value.message
-              val detailString   = value.diagnostic.detail
-              val snippetString  = value.diagnostic.snippet.code
-              val positionString = value.diagnostic.snippet.startLine
-              val fileName       = value.diagnostic.range.filename
-              val appendString   = s"$messageString. $detailString $snippetString at line: $positionString of $fileName"
-              List(appendString)
-            case Left(_)      => None
+        .filter(s => s.contains("diagnostic"))
+        .flatMap { diagnosticString =>
+          parser.parse(diagnosticString).flatMap(_.as[ErrorResponse]) match {
+            case Right(errorResponse) =>
+              List(errorResponse.toString)
+            case Left(error)          =>
+              logger.error("Unable to return the parsed ErrorResponse.", error)
+              List(diagnosticString)
           }
         }
       if (result.isEmpty)
@@ -156,19 +100,102 @@ class TerraformResult(processResult: ProcessResult) {
     */
   def validationErrors: List[String] =
     if (!isSuccess) {
-      parser.parse(processResult.buildOutputString).flatMap(_.as[ValidationResponse]) match {
-        case Right(value) =>
-          value.diagnostics.map { x =>
-            val filename = x.range.filename
-            val line     = x.range.start.line
-            val summary  = x.summary
-            val code     = x.snippet.code
-            val context  = x.snippet.context.getOrElse("")
-            val output   = s"$summary. Context [$context]. Code [$code] at line $line of $filename"
-            output
+      val processResultOutputString = processResult.buildOutputString
+
+      parser.parse(processResultOutputString).flatMap(_.as[ValidationResponse]) match {
+        case Right(validationResponse) =>
+          validationResponse.diagnostics.map { diagnostic =>
+            diagnostic.toString
           }
-        case Left(_)      => List("Details about the errors are not available. Contact the Platform team for assistance!")
+        case Left(error)               =>
+          logger.error("Unable to return the parsed ValidationResponse.", error)
+          List(processResultOutputString)
       }
     } else List.empty[String]
+
+  /** Allows to establish if the execution has been successful or not.
+    *
+    * @return true if the execution of the command has raised no error.
+    */
+  def isSuccess: Boolean = processResult.exitCode == 0
+
+  @ConfiguredJsonCodec
+  case class Snippet(
+    context: Option[String],
+    code: String,
+    startLine: Int,
+    highlightStartOffset: Int,
+    highlightEndOffset: Int,
+    values: List[SnippetValue]
+  ) {
+    override def toString: String =
+      s"""Context: [${context.getOrElse("")}]
+         |Code: [$code]
+         |""".stripMargin
+  }
+
+  @ConfiguredJsonCodec
+  case class SnippetValue(
+    traversal: String,
+    statement: String
+  )
+
+  @ConfiguredJsonCodec
+  case class Position(line: Int, column: Int, byte: Int)
+
+  @ConfiguredJsonCodec
+  case class Range(filename: String, start: Position, end: Position)
+
+  @ConfiguredJsonCodec
+  case class Diagnostic(
+    severity: String,
+    summary: String,
+    detail: String,
+    range: Option[Range],
+    snippet: Option[Snippet]
+  ) {
+    override def toString: String =
+      s"""Summary: [$summary]
+         |Detail: [$detail]
+         |${snippet.getOrElse("The snippet is not available.")}
+         |""".stripMargin
+  }
+
+  @ConfiguredJsonCodec
+  case class ErrorResponse(
+    @JsonKey("@level") level: String,
+    @JsonKey("@message") message: String,
+    @JsonKey("@module") module: String,
+    @JsonKey("@timestamp") timestamp: String,
+    @JsonKey("diagnostic") diagnostic: Diagnostic,
+    @JsonKey("type") typeOf: String
+  ) {
+    override def toString: String =
+      s"""Message: [$message]
+         |$diagnostic
+         |""".stripMargin
+  }
+
+  @ConfiguredJsonCodec
+  case class ValidationResponse(
+    @JsonKey("format_version") formatVersion: String,
+    @JsonKey("valid") valid: Boolean,
+    @JsonKey("error_count") errorCount: Int,
+    @JsonKey("warning_count") warningCount: Int,
+    @JsonKey("diagnostics") diagnostics: List[Diagnostic]
+  )
+
+  @ConfiguredJsonCodec
+  case class Output(sensitive: Boolean, @JsonKey("type") typeOf: String, value: String)
+
+  @ConfiguredJsonCodec
+  case class OutputMessage(
+    @JsonKey("@level") level: String,
+    @JsonKey("@message") message: String,
+    @JsonKey("@module") module: String,
+    @JsonKey("@timestamp") timestamp: String,
+    @JsonKey("outputs") outputs: Map[String, Output],
+    @JsonKey("type") typeOf: String
+  )
 
 }

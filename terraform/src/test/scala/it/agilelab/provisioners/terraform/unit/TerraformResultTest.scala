@@ -370,7 +370,69 @@ class TerraformResultTest extends AnyFlatSpec with should.Matchers {
 
     result.isSuccess shouldBe false
     result.errorMessages.size shouldBe 1
-    result.errorMessages.head should startWith("Error: No value for required variable.")
+    result.errorMessages.head should startWith("Message: [Error: No value for required variable]")
+
+  }
+
+  "Terraform" should "return an error message when can't access attributes" in {
+
+    val logs =
+      """
+        |{
+        |  "@level":"error",
+        |  "@message":"Error: Unsupported attribute",
+        |  "@module":"terraform.ui",
+        |  "@timestamp":"2024-05-29T09:30:11.285252+02:00",
+        |  "diagnostic":{"severity":"error","summary":"Unsupported attribute","detail":"Can't access attributes on a primitive-typed value (string).","range":{"filename":"...","start":{"line":88,"column":67,"byte":4280},"end":{"line":88,"column":70,"byte":4283}},"snippet":{"context":"...","code":"...","start_line":88,"highlight_start_offset":66,"highlight_end_offset":69,"values":[{"traversal":"var.data_product__name","statement":"is a string"}]}},
+        |  "type":"diagnostic"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val terraform = Terraform()
+      .outputInJson()
+      .processor(new MockProcessor(1, logs))
+      .onDirectory("folder")
+
+    val result = terraform.doApply()
+
+    result.isSuccess shouldBe false
+    result.errorMessages.size shouldBe 1
+    result.errorMessages.head should startWith(
+      "Message: [Error: Unsupported attribute]"
+    )
+
+  }
+
+  "Terraform" should "return an error message when can't access attributes 2" in {
+
+    val logs =
+      """
+        |{
+        |  "@level": "error",
+        |  "@message": "Error: waiting for Synapse Workspace ...",
+        |  "@module": "terraform.ui",
+        |  "@timestamp": "2024-05-29T12:08:34.186712Z",
+        |  "diagnostic": {
+        |    "severity": "error",
+        |    "summary": "waiting for Synapse Workspace ...",
+        |    "detail": ""
+        |  },
+        |  "type": "diagnostic"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val terraform = Terraform()
+      .outputInJson()
+      .processor(new MockProcessor(1, logs))
+      .onDirectory("folder")
+
+    val result = terraform.doApply()
+
+    result.isSuccess shouldBe false
+    result.errorMessages.size shouldBe 1
+    result.errorMessages.head should startWith(
+      "Message: [Error: waiting for Synapse Workspace ...]"
+    )
 
   }
 

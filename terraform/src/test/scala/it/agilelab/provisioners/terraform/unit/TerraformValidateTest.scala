@@ -268,7 +268,7 @@ class TerraformValidateTest extends AnyFlatSpec with should.Matchers {
 
     val res: TerraformResult = terraform.doValidate()
     res.validationErrors.size shouldBe 1
-    res.validationErrors.head should startWith("Invalid reference. Context [resource")
+    res.validationErrors.head should startWith("Summary: [Invalid reference]")
   }
 
 }
