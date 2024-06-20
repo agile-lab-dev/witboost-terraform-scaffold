@@ -385,6 +385,38 @@ variable "ownerPrincipals" {
 ```
 If you do not require this information, you can simply not use it in your terraform code.
 
+#### Outputs
+
+Specific provisioners provide the possibility of returning results to witboost within the `Info` object. These results can be either private or public.
+The `Info` object is a field that can contain different public and private details. Only details in the publicInfo object will be displayed to consumers in the Marketplace, while all the values put in the privateInfo will be stored in the deployed descriptor, but will not be shown in the Marketplace UI.
+There is no limit to how many values can be set in those fields, but only the ones compliant with the following specification will be rendered in the "Technical Information" card of the Marketplace module. Invalid data is ignored and if there is no valid data to be shown, the "Technical Information" card will not be displayed.
+
+By default the terraform provisioners will inject all non-sensitive outputs as **private info**.
+
+If, on the other side, you want to return public info, you need to create an output called `public_info`, which must honor the schema requested by Witboost. This output will not be present in the `private_info`.
+
+In the following example, a `public_info` that contains two elements is returned.
+
+```terraform
+output "public_info" {
+  value = {
+    saLink = {
+      type  = "link"
+      label = "Endpoint link"
+      value = "Endpoint link"
+      href  = "adls://foo.bar"
+    },
+    saName = {
+      type  = "string"
+      label = "Storage Account Name"
+      value = "Foo"
+    }
+  }
+}
+```
+
+You can refer to Witboost documentation for a better understanding of the requested public_info schema. 
+
 ### Unprovisioning
 
 The `unprovision` endpoint takes care about destroying the provisioned resources. The endpoint honours the `removeData` parameter, it will therefore skip the destroy operation for components of type `storage` when `false`.

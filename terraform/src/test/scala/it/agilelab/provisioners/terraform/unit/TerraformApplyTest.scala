@@ -1,8 +1,11 @@
 package it.agilelab.provisioners.terraform.unit
 
+import io.circe.Decoder
+import io.circe.generic.semiauto.deriveDecoder
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.noLog
 import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformResult, TerraformVariables }
+import it.agilelab.spinframework.app.api.mapping.ProvisioningInfoMapper.InnerJson
 import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ParserFactory, YamlDescriptor }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
@@ -271,8 +274,77 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val res             = tfProvider.provision(descriptor, Set.empty)
 
     res.outputs.size shouldBe 1
-    res.outputs.head.name shouldBe "fiz"
-    res.outputs.head.value shouldBe "biz"
+    res.outputs.head.name shouldEqual "fiz"
+    res.outputs.head.value.asString.get shouldEqual "biz"
+
+  }
+
+  "Terraform" should "perform apply and return complex outputs" in {
+
+    val outputString =
+      """
+        |{
+        |  "@level":"info",
+        |  "@message":"Outputs: 2",
+        |  "@module":"terraform.ui",
+        |  "@timestamp":"2023-09-04T14:19:04.774029+02:00",
+        |  "outputs":{
+        |      "public_info":{"sensitive":false,"type":["object",{"aString":["object",{"label":"string","type":"string","value":"string"}]}],"value":{"aString":{"label":"Storage Account Name","type":"string","value":"/subscription/halable/foo"}}},
+        |      "storage_account_id":{"sensitive":false,"type":"string","value":"/subscriptions/12345678-1234-1234-bbcc-000000111111/resourceGroups/myrg/providers/Microsoft.Storage/storageAccounts/test"}
+        |  },
+        |  "type":"outputs"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Jhon Doe
+        |    intField: 33
+        |    doubleField: 33.9
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+        |        description: Output Port for vaccinations data using Hasura
+        |        name: Hasura Output Port
+        |        fullyQualifiedName: Hasura Output Port
+        |        dataContract:
+        |          schema:
+        |            - name: date
+        |              dataType: DATE
+        |            - name: location_key
+        |              dataType: TEXT
+        |              constraint: PRIMARY_KEY
+        |        specific:
+        |            customTableName: healthcare_vaccinationsnb_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+
+    val mockProcessor = new MockProcessor(0, outputString)
+
+    val terraformBuilder = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+
+    val terraformModule =
+      TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.dataProductOwnerDisplayName"), "key")
+
+    val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
+    val res             = tfProvider.provision(descriptor, Set.empty)
+
+    res.outputs.size shouldBe 2
+    val pi   = res.outputs.head
+    val said = res.outputs.last
+
+    pi.name shouldBe "public_info"
+    implicit val innerJsonDecoder: Decoder[InnerJson] = deriveDecoder[InnerJson]
+    pi.value.as[Map[String, InnerJson]].isRight shouldBe true
+    said.name shouldBe "storage_account_id"
+    said.value.asString.get should include("myrg/providers/Microsoft.Storage/storageAccounts/test")
 
   }
 

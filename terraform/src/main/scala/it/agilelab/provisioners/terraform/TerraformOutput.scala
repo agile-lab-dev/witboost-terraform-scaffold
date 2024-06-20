@@ -1,3 +1,5 @@
 package it.agilelab.provisioners.terraform
 
-case class TerraformOutput(name: String, value: String, typeOf: String, sensitive: Boolean)
+import io.circe.Json
+
+case class TerraformOutput(name: String, value: Json, typeOf: Json, sensitive: Boolean)

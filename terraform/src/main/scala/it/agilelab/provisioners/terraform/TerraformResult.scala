@@ -1,7 +1,7 @@
 package it.agilelab.provisioners.terraform
 
 import io.circe.generic.extras._
-import io.circe.parser
+import io.circe.{ parser, Json }
 import org.slf4j.{ Logger, LoggerFactory }
 
 /** The result coming from the execution of a Terraform command.
@@ -186,7 +186,7 @@ class TerraformResult(processResult: ProcessResult) {
   )
 
   @ConfiguredJsonCodec
-  case class Output(sensitive: Boolean, @JsonKey("type") typeOf: String, value: String)
+  case class Output(sensitive: Boolean, @JsonKey("type") typeOf: Json, value: Json)
 
   @ConfiguredJsonCodec
   case class OutputMessage(

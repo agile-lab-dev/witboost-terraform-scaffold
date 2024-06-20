@@ -129,7 +129,34 @@ class ProvisionHandlerTest extends HandlerTestBase {
     val provisionStub: Provision   = new ProvisionStub {
       override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult = {
         val outputs: Seq[TerraformOutput] = Seq(
-          TerraformOutput("foo", "bar")
+          TerraformOutput("foo", "bar".asJson)
+        )
+        ProvisionResult.completed(outputs)
+      }
+    }
+    val handler                    = new SpecificProvisionerHandler(provisionStub, null, null)
+    val response: IO[Response[IO]] = new Resource[IO]()
+      .routes(handler)
+      .orNotFound
+      .run(
+        Request(method = Method.POST, uri = uri"datamesh.specificprovisioner/v1/provision")
+          .withEntity(ProvisioningRequest(DescriptorKind.ComponentDescriptor, "a-yaml-descriptor"))
+      )
+
+    val expected = new PSDto(
+      PSDto.Status.Completed,
+      "",
+      Some(Info(JsonObject.empty.asJson, OutputsWrapper(Map("foo" -> InnerInfoJson("bar"))).asJson))
+    )
+
+    check[PSDto](response, Status.Ok, Some(expected)) shouldBe true
+  }
+
+  "The server" should "return a 200 - COMPLETED (with complex outputs)" in {
+    val provisionStub: Provision   = new ProvisionStub {
+      override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult = {
+        val outputs: Seq[TerraformOutput] = Seq(
+          TerraformOutput("foo", "bar".asJson)
         )
         ProvisionResult.completed(outputs)
       }

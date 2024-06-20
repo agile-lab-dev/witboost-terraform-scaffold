@@ -264,7 +264,7 @@ class TerraformResultTest extends AnyFlatSpec with should.Matchers {
 
     tfOutputs.getOrElse(null).size shouldEqual 2
     tfOutputs.getOrElse(null).head.name shouldEqual "foo"
-    tfOutputs.getOrElse(null).head.value shouldEqual "bar"
+    tfOutputs.getOrElse(null).head.value.asString.get shouldEqual "bar"
 
   }
 

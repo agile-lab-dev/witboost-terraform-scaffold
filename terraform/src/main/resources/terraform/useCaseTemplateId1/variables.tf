@@ -11,3 +11,7 @@ variable "storage_account_location" {
 variable "storage_account_name" {
   description = "Storage account name"
 }
+
+variable "ownerPrincipals" {
+  type = string
+}
