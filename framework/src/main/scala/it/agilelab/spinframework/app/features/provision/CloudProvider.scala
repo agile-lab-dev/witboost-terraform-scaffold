@@ -22,10 +22,11 @@ trait CloudProvider {
   /** Receives the component descriptor and forwards an unprovision request to the cloud provider.
     *
     * @param descriptor contains the details of the resources to unprovision on the cloud
-    *  @param removeData wethere to remove the underlying data or not
+    * @param mappedOwners the mapped principals that are owners of the DP
+    * @param removeData wethere to remove the underlying data or not
     * @return the state of the operation
     */
-  def unprovision(descriptor: ComponentDescriptor, removeData: Boolean): ProvisionResult
+  def unprovision(descriptor: ComponentDescriptor, mappedOwners: Set[String], removeData: Boolean): ProvisionResult
 
   /** Receives the component descriptor and forwards a validate request to the cloud provider.
     *

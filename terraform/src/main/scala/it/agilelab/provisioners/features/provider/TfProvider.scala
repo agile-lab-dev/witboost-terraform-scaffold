@@ -77,11 +77,20 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
         }
     )
 
-  private val kindJsonPath = "$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].kind"
+  private def kindJsonPath(descriptorString: String): String =
+    if (JsonPathUtils.isDataProductProvisioning(descriptorString)) {
+      "$.kind"
+    } else {
+      "$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].kind"
+    }
 
-  override def unprovision(descriptor: ComponentDescriptor, removeData: Boolean): ProvisionResult = {
+  override def unprovision(
+    descriptor: ComponentDescriptor,
+    mappedOwners: Set[String],
+    removeData: Boolean
+  ): ProvisionResult = {
 
-    val kind = JsonPathUtils.getValue(descriptor.toString, kindJsonPath)
+    val kind = JsonPathUtils.getValue(descriptor.toString, kindJsonPath(descriptor.toString))
     kind match {
       case Right(k) =>
         // if it's not a storage, we don't care about removeData
@@ -95,8 +104,8 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
               variablesFrom(descriptor) match {
                 case Left(l)     => ProvisionResult.failure(l)
                 case Right(vars) =>
-                  // when unprovisioning we can pass an empty set for ownerPrincipals, without doing the mapping
-                  val extendedVars = TerraformVariables(vars.variables + ("ownerPrincipals" -> ""))
+                  val extendedVars =
+                    TerraformVariables(vars.variables + ("ownerPrincipals" -> mappedOwners.mkString(",")))
                   val result       = terraform.doDestroy(extendedVars)
                   if (result.isSuccess)
                     ProvisionResult.completed()

@@ -5,7 +5,7 @@ import it.agilelab.spinframework.app.features.provision.{ CloudProvider, Provisi
 
 object CloudProviderStub {
   type ProvisionFunction   = (ComponentDescriptor, Set[String]) => ProvisionResult
-  type UnprovisionFunction = (ComponentDescriptor, Boolean) => ProvisionResult
+  type UnprovisionFunction = (ComponentDescriptor, Set[String], Boolean) => ProvisionResult
   type UpdateAclFcuntion   = (ComponentDescriptor, ComponentDescriptor, Set[String]) => ProvisionResult
   type ValidateFunction    = ComponentDescriptor => ProvisionResult
 
@@ -14,8 +14,12 @@ object CloudProviderStub {
       function.apply(descriptor, mappedOwners)
   }
   def unprovision(function: UnprovisionFunction): CloudProviderStub = new CloudProviderStub {
-    override def unprovision(descriptor: ComponentDescriptor, removeData: Boolean): ProvisionResult =
-      function.apply(descriptor, removeData)
+    override def unprovision(
+      descriptor: ComponentDescriptor,
+      mappedOwners: Set[String],
+      removeData: Boolean
+    ): ProvisionResult =
+      function.apply(descriptor, mappedOwners, removeData)
   }
   def validate(function: ValidateFunction): CloudProviderStub       = new CloudProviderStub {
     override def validate(descriptor: ComponentDescriptor): ProvisionResult = function.apply(descriptor)
@@ -32,7 +36,11 @@ object CloudProviderStub {
   def alwaysReturnCompleted: CloudProviderStub = new CloudProviderStub {
     override def provision(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult =
       ProvisionResult.completed()
-    override def unprovision(descriptor: ComponentDescriptor, removeData: Boolean): ProvisionResult     =
+    override def unprovision(
+      descriptor: ComponentDescriptor,
+      mappedOwners: Set[String],
+      removeData: Boolean
+    ): ProvisionResult                                                                                  =
       ProvisionResult.completed()
   }
 }
@@ -40,7 +48,11 @@ object CloudProviderStub {
 class CloudProviderStub extends CloudProvider {
   override def provision(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult =
     throw new UnsupportedOperationException
-  override def unprovision(descriptor: ComponentDescriptor, removeData: Boolean): ProvisionResult     =
+  override def unprovision(
+    descriptor: ComponentDescriptor,
+    mappedOwners: Set[String],
+    removeData: Boolean
+  ): ProvisionResult                                                                                  =
     throw new UnsupportedOperationException
   override def updateAcl(
     resultDescriptor: ComponentDescriptor,

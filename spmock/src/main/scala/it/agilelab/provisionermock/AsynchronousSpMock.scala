@@ -17,7 +17,11 @@ class AsynchronousMockDependencies extends AsynchronousSpecificProvisionerDepend
   override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(new CloudProvider {
     override def provision(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult =
       ProvisionResult.running(ComponentToken("component-1234"))
-    override def unprovision(descriptor: ComponentDescriptor, removeData: Boolean): ProvisionResult     =
+    override def unprovision(
+      descriptor: ComponentDescriptor,
+      mappedOwners: Set[String],
+      removeData: Boolean
+    ): ProvisionResult                                                                                  =
       ProvisionResult.completed()
     override def updateAcl(
       descriptorResult: ComponentDescriptor,

@@ -48,6 +48,37 @@ class ProvisionServiceTest extends AnyFlatSpec with should.Matchers with Idiomat
     provisionResult.errors shouldBe empty
   }
 
+  "The provision service" should "return a 'completed' result for the provisioned dp" in {
+    val validator: DescriptorValidator     = _ => ValidationResult.create
+    val compile                            = new CompileService(parser, validator)
+    val cProvider                          = CloudProviderStub.provision((_, _) => ProvisionResult.completed())
+    val deps                               = new SynchronousSpecificProvisionerDependencies {
+      override def descriptorValidator: DescriptorValidator                       = validator
+      override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
+    }
+    val principalMapperPluginLoader        = new PrincipalMapperPluginLoader()
+    val provisionService: ProvisionService =
+      new ProvisionService(compile, deps, principalMapperPluginLoader)
+
+    val yamlDescriptor = YamlDescriptor("""
+      dataProductOwner: user:name.surname_email.com
+      devGroup: group:dev
+      useCaseTemplateId: urn:dmb:utm:dp:0.0.0
+      components:
+        - kind: workload
+          id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+          useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+      field1: "1"
+      field2: "2"
+      field3: "3"
+    """)
+
+    val provisionResult: ProvisionResult = provisionService.doProvisioning(yamlDescriptor)
+
+    provisionResult.provisioningStatus shouldBe ProvisioningStatus.Completed
+    provisionResult.errors shouldBe empty
+  }
+
   "The provision service" should "return an error for an invalid yaml descriptor" in {
     val validator: DescriptorValidator = _ => ValidationResult.create
     val compile                        = new CompileService(parser, validator)

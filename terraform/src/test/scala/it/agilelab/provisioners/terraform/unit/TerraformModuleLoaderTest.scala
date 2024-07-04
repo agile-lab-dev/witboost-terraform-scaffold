@@ -1,6 +1,8 @@
 package it.agilelab.provisioners.terraform.unit
 
 import it.agilelab.provisioners.terraform.TerraformModuleLoader
+import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ParserFactory, YamlDescriptor }
+import it.agilelab.spinframework.app.utils.JsonPathUtils
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
@@ -76,6 +78,75 @@ class TerraformModuleLoaderTest extends AnyFlatSpec with should.Matchers with Ei
     eitherModule.left.getOrElse(null) should include(
       "The configured state key backendConfigs.stateKey doesn't match any item"
     )
+  }
+
+  "TerraformModuleLoader" should "extract the moduleId of the data product" in {
+
+    val parser     = ParserFactory.parser()
+    val descriptor = YamlDescriptor("""
+                                      |dataProduct:
+                                      |    dataProductOwnerDisplayName: Jhon
+                                      |    id : asd
+                                      |    intField: 33
+                                      |    billing: {}
+                                      |    tags: []
+                                      |
+                                      |""".stripMargin).parse(parser).descriptor.toString
+
+    JsonPathUtils.isDataProductProvisioning(descriptor) shouldBe true
+
+  }
+
+  "TerraformModuleLoader" should "extract the moduleId of the component" in {
+
+    val parser             = ParserFactory.parser()
+    val descriptor: String =
+      YamlDescriptor("""
+                       |dataProduct:
+                       |    dataProductOwnerDisplayName: Jhon Doe
+                       |    intField: 33
+                       |    billing: {}
+                       |    tags: []
+                       |    specific: {}
+                       |    components:
+                       |      - kind: outputport
+                       |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+                       |        description: Output Port for vaccinations data using Hasura
+                       |        name: Hasura Output Port
+                       |        fullyQualifiedName: Hasura Output Port
+                       |        version: 0.0.0
+                       |        infrastructureTemplateId: urn:dmb:itm:hasura-outputport-provisioner:0
+                       |        useCaseTemplateId: urn:dmb:utm:hasura-outputport-template:0.0.0
+                       |        dependsOn:
+                       |          - urn:dmb:cmp:healthcare:vaccinations-nb:0:snowflake-output-port
+                       |        platform: Hasura
+                       |        technology: Hasura
+                       |        outputPortType: GraphQL
+                       |        creationDate: 2023-06-12T12:52:11.737Z
+                       |        startDate: 2023-06-12T12:52:11.737Z
+                       |        tags: []
+                       |        sampleData: {}
+                       |        semanticLinking: []
+                       |        specific:
+                       |            resourceGroup: healthcare_rg
+                       |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+                       |
+                       |""".stripMargin).parse(parser).descriptor.toString
+
+    JsonPathUtils.isDataProductProvisioning(descriptor) shouldBe false
+
+  }
+
+  "TerraformModuleLoader" should "handle bad descriptor" in {
+
+    val parser     = ParserFactory.parser()
+    val descriptor = YamlDescriptor("""
+                                      |dataPr!!
+                                      |
+                                      |""".stripMargin).parse(parser).descriptor.toString
+
+    JsonPathUtils.isDataProductProvisioning(descriptor) shouldBe false
+
   }
 
 }

@@ -200,7 +200,7 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers with Idiomat
     val parser          = ParserFactory.parser()
     val terraformModule = TerraformModule("doesnt-exist", Map.empty, Map.empty, "")
     val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
-    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, true)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, Set(), true)
 
     res.isSuccessful shouldBe false
 
@@ -230,7 +230,7 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers with Idiomat
     val parser          = ParserFactory.parser()
     val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.foo"), "key")
     val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
-    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, false)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, Set(), false)
 
     res.isSuccessful shouldBe true
 
@@ -260,7 +260,7 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers with Idiomat
     val parser          = ParserFactory.parser()
     val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.foo"), "key")
     val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
-    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, false)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, Set(), false)
 
     res.isSuccessful shouldBe true
 
@@ -290,7 +290,7 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers with Idiomat
     val parser          = ParserFactory.parser()
     val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.foo"), "key")
     val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
-    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, true)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, Set(), true)
 
     res.isSuccessful shouldBe true
 
@@ -316,9 +316,33 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers with Idiomat
     val parser          = ParserFactory.parser()
     val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map.empty, "")
     val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
-    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, removeData = false)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, Set(), removeData = false)
 
     Mockito.verifyNoInteractions(mockProcessor.run(*))
+    res.isSuccessful shouldBe true
+
+  }
+
+  "Terraform" should "Destroy completed with (removeData = true, kind = dataproduct)" in {
+    val outputString  = "Destroy complete!"
+    val mockProcessor = mock[Processor]
+    when(mockProcessor.run(*)) thenReturn new ProcessResult(0, new MockProcessOutput(outputString))
+
+    val terraformBuilder = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+
+    val yamlDescriptor = """
+      kind: dataproduct
+      some-field: 1
+      foo: bar
+    """
+
+    val parser          = ParserFactory.parser()
+    val terraformModule = TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.foo"), "key")
+    val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
+    val res             = tfProvider.unprovision(YamlDescriptor(yamlDescriptor).parse(parser).descriptor, Set(), true)
+
     res.isSuccessful shouldBe true
 
   }
@@ -357,7 +381,7 @@ class TerraformDestroyTest extends AnyFlatSpec with should.Matchers with Idiomat
       TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.dataProductOwnerDisplayName"), "key")
     val tfProvider                      = new TfProvider(terraformBuilder, terraformModule)
 
-    val res = tfProvider.unprovision(descriptor, removeData = false)
+    val res = tfProvider.unprovision(descriptor, Set(), removeData = false)
 
     res.isSuccessful shouldBe true
     mockProcessor.command should include(s"""-var ownerPrincipals=''""")

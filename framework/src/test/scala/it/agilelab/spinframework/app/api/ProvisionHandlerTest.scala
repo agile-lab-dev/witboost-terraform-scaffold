@@ -29,7 +29,7 @@ class ProvisionHandlerTest extends HandlerTestBase {
   class ProvisionStub extends Provision {
     override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult               =
       ProvisionResult.completed()
-    override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean): ProvisionResult               =
+    override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean, cfg: Config): ProvisionResult  =
       ProvisionResult.completed()
     override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult =
       ProvisionResult.completed()
@@ -110,7 +110,7 @@ class ProvisionHandlerTest extends HandlerTestBase {
 
   it should "return a 500 with meaningful error on unprovision exception" in {
     val provisionStub: Provision   = new ProvisionStub {
-      override def doUnprovisioning(yamlDescriptor: YamlDescriptor, removeData: Boolean): ProvisionResult =
+      override def doUnprovisioning(yamlDescriptor: YamlDescriptor, removeData: Boolean, cfg: Config): ProvisionResult =
         throw new IllegalArgumentException("error")
     }
     val handler                    = new SpecificProvisionerHandler(provisionStub, null, null)

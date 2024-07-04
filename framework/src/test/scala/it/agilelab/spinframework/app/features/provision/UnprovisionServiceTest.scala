@@ -1,7 +1,7 @@
 package it.agilelab.spinframework.app.features.provision
 
 import it.agilelab.spinframework.app.cloudprovider.CloudProviderStub
-import it.agilelab.spinframework.app.config.SynchronousSpecificProvisionerDependencies
+import it.agilelab.spinframework.app.config.{ PrincipalMapperPluginLoader, SynchronousSpecificProvisionerDependencies }
 import it.agilelab.spinframework.app.features.compiler.ErrorMessages.InvalidDescriptor
 import it.agilelab.spinframework.app.features.compiler.ValidationResultFactory.validationResultWithErrors
 import it.agilelab.spinframework.app.features.compiler._
@@ -14,15 +14,18 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
   "The unprovision service" should "return a 'completed' result" in {
     val validator: DescriptorValidator     = _ => ValidationResult.create
     val compile                            = new CompileService(parser, validator)
-    val cProvider                          = CloudProviderStub.unprovision((_, _) => ProvisionResult.completed())
+    val cProvider                          = CloudProviderStub.unprovision((_, _, _) => ProvisionResult.completed())
     val deps                               = new SynchronousSpecificProvisionerDependencies {
       override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
     }
-    val provisionService: ProvisionService = new ProvisionService(compile, deps, null)
+    val principalMapperPluginLoader        = new PrincipalMapperPluginLoader()
+    val provisionService: ProvisionService = new ProvisionService(compile, deps, principalMapperPluginLoader)
 
     val yamlDescriptor = YamlDescriptor("""
       dataProduct:
+        dataProductOwner: user:name.surname_email.com
+        devGroup: group:dev
         components:
         - kind: workload
           id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
@@ -74,15 +77,19 @@ class UnprovisionServiceTest extends AnyFlatSpec with should.Matchers {
     val validator: DescriptorValidator = _ => ValidationResult.create
     val compile                        = new CompileService(parser, validator)
     val cloudProviderErrors            = Seq(ErrorMessage("some cloud error"))
-    val cProvider: CloudProvider       = CloudProviderStub.unprovision((_, _) => ProvisionResult.failure(cloudProviderErrors))
+    val cProvider: CloudProvider       =
+      CloudProviderStub.unprovision((_, _, _) => ProvisionResult.failure(cloudProviderErrors))
     val deps                           = new SynchronousSpecificProvisionerDependencies {
       override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
     }
-    val provision: ProvisionService    = new ProvisionService(compile, deps, null)
+    val principalMapperPluginLoader    = new PrincipalMapperPluginLoader()
+    val provision: ProvisionService    = new ProvisionService(compile, deps, principalMapperPluginLoader)
 
     val yamlDescriptor = YamlDescriptor("""
       dataProduct:
+        dataProductOwner: user:name.surname_email.com
+        devGroup: group:dev
         components:
         - kind: workload
           id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
