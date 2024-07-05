@@ -1,15 +1,13 @@
 package it.agilelab.provisionermock
 
+import cats.effect.IO
 import it.agilelab.spinframework.app.SpecificProvisioner
 import it.agilelab.spinframework.app.config.AsynchronousSpecificProvisionerDependencies
 import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, DescriptorValidator, Validation }
-import it.agilelab.spinframework.app.features.provision.{
-  CloudProvider,
-  ComponentToken,
-  ProvisionResult,
-  ProvisioningStatus
-}
-import it.agilelab.spinframework.app.features.status.GetStatus
+import it.agilelab.spinframework.app.features.provision.{ CloudProvider, ComponentToken, ProvisionResult }
+import it.agilelab.spinframework.app.features.status.{ CacheRepository, GetStatus, TaskRepository }
+
+import scala.concurrent.ExecutionContext
 
 class AsynchronousMockDependencies extends AsynchronousSpecificProvisionerDependencies {
   override def descriptorValidator: DescriptorValidator = _ => Validation.start
@@ -32,7 +30,11 @@ class AsynchronousMockDependencies extends AsynchronousSpecificProvisionerDepend
     override def validate(descriptor: ComponentDescriptor): ProvisionResult                             = ProvisionResult.completed()
   })
 
-  override def getStatus: GetStatus = _ => ProvisioningStatus.Completed
+  override def getStatus: GetStatus = _ => IO.pure(Some(ProvisionResult.completed()))
+
+  override def taskRepository: TaskRepository = new CacheRepository
+
+  override def executionContext: ExecutionContext = ExecutionContext.global
 }
 
 object AsynchronousSpMock extends SpecificProvisioner {

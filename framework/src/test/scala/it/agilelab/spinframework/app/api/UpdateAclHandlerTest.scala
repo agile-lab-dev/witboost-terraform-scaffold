@@ -10,8 +10,8 @@ import it.agilelab.spinframework.app.api.generated.definitions.{
   UpdateAclRequest
 }
 import it.agilelab.spinframework.app.api.helpers.HandlerTestBase
-import it.agilelab.spinframework.app.features.compiler.YamlDescriptor
-import it.agilelab.spinframework.app.features.provision.{ Provision, ProvisionResult }
+import it.agilelab.spinframework.app.features.compiler.{ Compile, CompileResult, ErrorMessage, YamlDescriptor }
+import it.agilelab.spinframework.app.features.provision.{ AsyncProvision, Provision, ProvisionResult }
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s.circe.CirceEntityEncoder._
 import org.http4s.implicits.http4sLiteralsSyntax
@@ -30,7 +30,13 @@ class UpdateAclHandlerTest extends HandlerTestBase {
   }
 
   "The server" should "return a 500 error" in {
-    val handler                    = new SpecificProvisionerHandler(null, null, null)
+    val failing = new ProvisionStub {
+      override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult =
+        throw new Exception("Error!")
+    }
+
+    val compileStub: Compile       = _ => CompileResult.failure(List(ErrorMessage("Error")))
+    val handler                    = new SpecificProvisionerHandler(AsyncProvision.fromSyncProvision(failing), compileStub, null)
     val response: IO[Response[IO]] = new Resource[IO]()
       .routes(handler)
       .orNotFound
@@ -44,7 +50,7 @@ class UpdateAclHandlerTest extends HandlerTestBase {
 
   "The server" should "return a 200 ok" in {
 
-    val handler                    = new SpecificProvisionerHandler(new ProvisionStub, null, null)
+    val handler                    = new SpecificProvisionerHandler(AsyncProvision.fromSyncProvision(new ProvisionStub), null, null)
     val response: IO[Response[IO]] = new Resource[IO]()
       .routes(handler)
       .orNotFound

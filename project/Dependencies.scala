@@ -2,11 +2,12 @@ import sbt._
 trait Dependencies {
 
   lazy val testDependencies: Seq[ModuleID] = Seq(
-    "org.scalactic"       %% "scalactic"          % "3.2.12",
-    "org.scalatest"       %% "scalatest"          % "3.2.12"  % Test,
-    "com.lihaoyi"         %% "requests"           % "0.7.1"   % Test,
-    "com.google.code.gson" % "gson"               % "2.9.0"   % Test,
-    "org.mockito"          % "mockito-scala_2.13" % "1.17.22" % Test
+    "org.scalactic"       %% "scalactic"                     % "3.2.12",
+    "org.scalatest"       %% "scalatest"                     % "3.2.12"  % Test,
+    "com.lihaoyi"         %% "requests"                      % "0.7.1"   % Test,
+    "com.google.code.gson" % "gson"                          % "2.9.0"   % Test,
+    "org.mockito"          % "mockito-scala_2.13"            % "1.17.22" % Test,
+    "org.typelevel"       %% "cats-effect-testing-scalatest" % "1.5.0"   % Test
   )
 
   lazy val frameworkDependencies: Seq[ModuleID] = Seq(

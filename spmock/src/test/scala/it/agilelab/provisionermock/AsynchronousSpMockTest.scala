@@ -40,4 +40,31 @@ class AsynchronousSpMockTest extends SpMockSuite {
     provisionStatusResponse.body.status shouldBe ProvisioningStatus.Status.Completed
   }
 
+  "The asynchronous spmock" should "accept an unprovision request and return its status from token" in {
+    val provisionResponse: HttpResponse[String] = httpClient.post(
+      endpoint = "/v1/unprovision",
+      request = ProvisioningRequest(
+        descriptorKind = DescriptorKind.ComponentDescriptor,
+        descriptor = """
+                       |dataProduct:
+                       |  dataProductOwner: user:name.surname_email.com
+                       |  devGroup: group:dev
+                       |  components:
+                       |    - kind: workload
+                       |      id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+                       |      useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+                       |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+                       |""".stripMargin
+      ),
+      bodyClass = classOf[String]
+    )
+
+    provisionResponse.status shouldBe 202
+    val componentToken = provisionResponse.body
+
+    val provisionStatusResponse = httpClient.get(s"/v1/provision/$componentToken/status", classOf[ProvisioningStatus])
+
+    provisionStatusResponse.status shouldBe 200
+    provisionStatusResponse.body.status shouldBe ProvisioningStatus.Status.Completed
+  }
 }

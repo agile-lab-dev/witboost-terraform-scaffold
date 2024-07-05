@@ -17,6 +17,12 @@ trait ConfigurationModel {
   val descriptorToVariablesMapping: String    = "descriptorToVariablesMapping"
   val principalMappingPlugin: String          = "principalMappingPlugin"
   val principalMappingPluginClass: String     = s"$principalMappingPlugin.pluginClass"
+
+  val async_config: String              = "async"
+  val async_config_type: String         = "type"
+  val async_provision_enabled: String   = s"$async_config.provision.enabled"
+  val async_provision_pool_size: String = s"$async_config.pool.size"
+  val async_provision_type: String      = s"$async_config.$async_config_type"
 }
 
 object ConfigurationModel extends ConfigurationModel

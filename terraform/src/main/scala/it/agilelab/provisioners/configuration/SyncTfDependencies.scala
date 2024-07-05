@@ -1,0 +1,5 @@
+package it.agilelab.provisioners.configuration
+
+import it.agilelab.spinframework.app.config.SynchronousSpecificProvisionerDependencies
+
+class SyncTfDependencies extends TfDependencies with SynchronousSpecificProvisionerDependencies

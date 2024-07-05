@@ -1,16 +1,9 @@
 package it.agilelab.provisioners.terraform.unit
 
-import io.circe
 import io.circe.parser
-import it.agilelab.provisioners.features.provider.TfProvider
-import it.agilelab.provisioners.terraform.{ Terraform, TerraformBuilder, TerraformModule, TerraformModuleLoader }
-import it.agilelab.spinframework.app.features.compiler.ComponentDescriptor
-import it.agilelab.spinframework.app.features.provision.ProvisioningStatus
-import it.agilelab.spinframework.app.features.support.test._
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should
 import it.agilelab.provisioners.features.descriptor.TerraformOutputsDescriptor
 import it.agilelab.provisioners.features.provider.TfProvider
+import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformModuleLoader }
 import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, Parser, ParserFactory }
 import it.agilelab.spinframework.app.features.provision.ProvisioningStatus
 import it.agilelab.spinframework.app.features.support.test._

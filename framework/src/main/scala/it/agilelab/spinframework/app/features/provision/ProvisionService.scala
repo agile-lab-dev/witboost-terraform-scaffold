@@ -26,6 +26,7 @@ class ProvisionService(
     }
 
   override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config = provisionerConfig): ProvisionResult = {
+    logger.info("Starting provisioning process")
     val result: CompileResult = compile.doCompile(yamlDescriptor)
     if (!result.isSuccess) return ProvisionResult.failure(result.errors)
 
@@ -55,6 +56,7 @@ class ProvisionService(
     removeData: Boolean,
     cfg: Config = provisionerConfig
   ): ProvisionResult = {
+    logger.info("Starting unprovisioning process")
     val result: CompileResult = compile.doCompile(yamlDescriptor)
     if (!result.isSuccess) return ProvisionResult.failure(result.errors)
 

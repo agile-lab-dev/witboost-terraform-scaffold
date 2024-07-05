@@ -13,11 +13,12 @@ import it.agilelab.spinframework.app.api.generated.{ Handler, Resource }
 import it.agilelab.spinframework.app.api.mapping.{ ProvisioningStatusMapper, ValidationErrorMapper }
 import it.agilelab.spinframework.app.features.compiler.{ Compile, YamlDescriptor }
 import it.agilelab.spinframework.app.features.provision.ProvisioningStatus.{ Completed, Failed, Running }
-import it.agilelab.spinframework.app.features.provision.{ ComponentToken, Provision, ProvisioningStatus }
+import it.agilelab.spinframework.app.features.provision.{ AsyncProvision, ComponentToken }
 import it.agilelab.spinframework.app.features.status.GetStatus
 import org.slf4j.{ Logger, LoggerFactory }
 
-class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkStatus: GetStatus) extends Handler[IO] {
+class SpecificProvisionerHandler(provision: AsyncProvision, compile: Compile, checkStatus: GetStatus)
+    extends Handler[IO] {
 
   final private val logger: Logger = LoggerFactory.getLogger(getClass.getName)
 
@@ -30,16 +31,19 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
 
   override def provision(
     respond: Resource.ProvisionResponse.type
-  )(body: ProvisioningRequest): IO[Resource.ProvisionResponse] = IO.blocking {
+  )(body: ProvisioningRequest): IO[Resource.ProvisionResponse] = {
     val descriptor = YamlDescriptor(body.descriptor)
-    val result     = provision.doProvisioning(descriptor)
-    result.provisioningStatus match {
-      case Running   => Resource.ProvisionResponse.Accepted(result.componentToken.asString)
-      case Completed => Resource.ProvisionResponse.Ok(ProvisioningStatusMapper.from(result))
-      case Failed    =>
-        Resource.ProvisionResponse.BadRequest(ValidationErrorMapper.from(result))
-    }
-  }.handleError((f: Throwable) => Resource.ProvisionResponse.InternalServerError(systemError(f, Provision)))
+    provision
+      .doProvisioning(descriptor)
+      .map { result =>
+        result.provisioningStatus match {
+          case Running   => Resource.ProvisionResponse.Accepted(result.componentToken.asString)
+          case Completed => Resource.ProvisionResponse.Ok(ProvisioningStatusMapper.from(result))
+          case Failed    => Resource.ProvisionResponse.BadRequest(ValidationErrorMapper.from(result))
+        }
+      }
+      .handleError((f: Throwable) => Resource.ProvisionResponse.InternalServerError(systemError(f, Provision)))
+  }
 
   private def systemError(f: Throwable, operationType: OperationType): SystemError = {
     logger.error("System Error", f)
@@ -69,50 +73,66 @@ class SpecificProvisionerHandler(provision: Provision, compile: Compile, checkSt
 
   override def unprovision(respond: Resource.UnprovisionResponse.type)(
     body: ProvisioningRequest
-  ): IO[Resource.UnprovisionResponse] = IO.blocking {
+  ): IO[Resource.UnprovisionResponse] = {
     val descriptor = YamlDescriptor(body.descriptor)
     val removeData = body.removeData
-    val result     = provision.doUnprovisioning(descriptor, removeData)
-    result.provisioningStatus match {
-      case Running   => Resource.UnprovisionResponse.Accepted(result.componentToken.asString)
-      case Completed => Resource.UnprovisionResponse.Ok(ProvisioningStatusMapper.from(result))
-      case Failed    =>
-        Resource.UnprovisionResponse.BadRequest(ValidationErrorMapper.from(result))
-    }
-  }.handleError((f: Throwable) => Resource.UnprovisionResponse.InternalServerError(systemError(f, Unprovision)))
+    provision
+      .doUnprovisioning(descriptor, removeData)
+      .map { result =>
+        result.provisioningStatus match {
+          case Running   => Resource.UnprovisionResponse.Accepted(result.componentToken.asString)
+          case Completed => Resource.UnprovisionResponse.Ok(ProvisioningStatusMapper.from(result))
+          case Failed    =>
+            Resource.UnprovisionResponse.BadRequest(ValidationErrorMapper.from(result))
+        }
+      }
+      .handleError((f: Throwable) => Resource.UnprovisionResponse.InternalServerError(systemError(f, Unprovision)))
+  }
 
   override def validate(respond: Resource.ValidateResponse.type)(
     body: ProvisioningRequest
-  ): IO[Resource.ValidateResponse] = IO.blocking {
+  ): IO[Resource.ValidateResponse] = {
     val descriptor = YamlDescriptor(body.descriptor)
-    val result     = provision.doValidate(descriptor)
-    if (result.isSuccessful) {
-      Resource.ValidateResponse.Ok(ValidationResult(valid = true))
-    } else {
-      Resource.ValidateResponse.Ok(ValidationResult(valid = false, Some(ValidationErrorMapper.from(result))))
-    }
-
-  }.handleError((f: Throwable) => Resource.ValidateResponse.InternalServerError(systemError(f, Validate)))
+    provision
+      .doValidate(descriptor)
+      .map { result =>
+        if (result.isSuccessful) {
+          Resource.ValidateResponse.Ok(ValidationResult(valid = true))
+        } else {
+          Resource.ValidateResponse.Ok(ValidationResult(valid = false, Some(ValidationErrorMapper.from(result))))
+        }
+      }
+      .handleError((f: Throwable) => Resource.ValidateResponse.InternalServerError(systemError(f, Validate)))
+  }
 
   override def getStatus(respond: Resource.GetStatusResponse.type)(token: String): IO[Resource.GetStatusResponse] =
-    IO.blocking {
-      val status: ProvisioningStatus = checkStatus.statusOf(ComponentToken(token))
-      val statusDto                  = ProvisioningStatusMapper.from(status)
-      Resource.GetStatusResponse.Ok(statusDto)
-    }.handleError((f: Throwable) => Resource.GetStatusResponse.InternalServerError(systemError(f, Status)))
+    checkStatus
+      .statusOf(ComponentToken(token))
+      .map { status =>
+        status
+          .fold[Resource.GetStatusResponse](
+            Resource.GetStatusResponse.InternalServerError(SystemError(s"Couldn't find operation for token '$token'"))
+          ) { result =>
+            val statusDto = ProvisioningStatusMapper.from(result)
+            Resource.GetStatusResponse.Ok(statusDto)
+          }
+      }
+      .handleError((f: Throwable) => Resource.GetStatusResponse.InternalServerError(systemError(f, Status)))
 
   override def updateacl(
     respond: Resource.UpdateaclResponse.type
-  )(body: UpdateAclRequest): IO[Resource.UpdateaclResponse] = IO {
-
-    val result = provision.doUpdateAcl(body.provisionInfo, body.refs.toSet)
-    result.provisioningStatus match {
-      case Running   => Resource.UpdateaclResponse.Accepted(result.componentToken.asString)
-      case Completed => Resource.UpdateaclResponse.Ok(ProvisioningStatusMapper.from(result))
-      case Failed    =>
-        Resource.UpdateaclResponse.BadRequest(ValidationErrorMapper.from(result))
-    }
-  }.handleError((f: Throwable) => Resource.UpdateaclResponse.InternalServerError(systemError(f, UpdateAcl)))
+  )(body: UpdateAclRequest): IO[Resource.UpdateaclResponse] =
+    provision
+      .doUpdateAcl(body.provisionInfo, body.refs.toSet)
+      .map { result =>
+        result.provisioningStatus match {
+          case Running   => Resource.UpdateaclResponse.Accepted(result.componentToken.asString)
+          case Completed => Resource.UpdateaclResponse.Ok(ProvisioningStatusMapper.from(result))
+          case Failed    =>
+            Resource.UpdateaclResponse.BadRequest(ValidationErrorMapper.from(result))
+        }
+      }
+      .handleError((f: Throwable) => Resource.UpdateaclResponse.InternalServerError(systemError(f, UpdateAcl)))
 
   override def asyncValidate(respond: Resource.AsyncValidateResponse.type)(
     body: ValidationRequest

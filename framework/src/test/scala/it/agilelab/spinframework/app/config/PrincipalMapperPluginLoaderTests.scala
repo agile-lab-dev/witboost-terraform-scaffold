@@ -1,10 +1,8 @@
 package it.agilelab.spinframework.app.config
 
-import com.typesafe.config.{ Config, ConfigFactory }
+import com.typesafe.config.ConfigFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
-
-import scala.util.Failure
 
 class PrincipalMapperPluginLoaderTests extends AnyFlatSpec with should.Matchers {
 

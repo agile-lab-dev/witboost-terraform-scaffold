@@ -3,9 +3,8 @@ package it.agilelab.provisioners.terraform.unit
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.noLog
 import it.agilelab.provisioners.terraform.TerraformVariables.noVariable
-import it.agilelab.provisioners.terraform.{ ProcessResult, _ }
+import it.agilelab.provisioners.terraform._
 import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ParserFactory, YamlDescriptor }
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar.when
 import org.mockito.{ ArgumentMatchersSugar, IdiomaticMockito, Mockito }
 import org.scalatest.flatspec.AnyFlatSpec

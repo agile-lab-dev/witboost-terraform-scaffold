@@ -1,6 +1,7 @@
 package it.agilelab.spinframework.app.features.status
 
-import it.agilelab.spinframework.app.features.provision.{ ComponentToken, ProvisioningStatus }
+import cats.effect.IO
+import it.agilelab.spinframework.app.features.provision.{ ComponentToken, ProvisionResult }
 
 /** This trait represents the provisioning status
   * of the request which is identified by an input token.
@@ -20,5 +21,5 @@ trait GetStatus {
     * @param token an identifier of the component
     * @return the status of the provisioning request
     */
-  def statusOf(token: ComponentToken): ProvisioningStatus
+  def statusOf(token: ComponentToken): IO[Option[ProvisionResult]]
 }

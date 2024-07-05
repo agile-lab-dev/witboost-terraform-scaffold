@@ -2,6 +2,7 @@ package it.agilelab.spinframework.app.typesafeconfig
 
 import com.typesafe.config.Config
 import it.agilelab.spinframework.app.config.Configuration._
+import it.agilelab.spinframework.app.features.status.TaskRepository
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
@@ -39,6 +40,21 @@ class TypesafeConfigTest extends AnyFlatSpec with should.Matchers with BeforeAnd
 
     testConfig.hasPath("key") shouldBe true
     testConfig.getString("key") shouldBe "value"
+  }
+
+  it should "return the async enabled provision" in {
+    val enabled: Boolean = provisionerConfig.getBoolean(async_provision_enabled)
+    enabled shouldBe false
+  }
+
+  it should "return the async pool size" in {
+    val poolSize: Int = provisionerConfig.getInt(async_provision_pool_size)
+    poolSize shouldBe 16
+  }
+
+  it should "return the async repository type" in {
+    val configType: String = provisionerConfig.getString(async_provision_type)
+    configType shouldBe TaskRepository.CACHE_REPOSITORY_TYPE
   }
 
 }

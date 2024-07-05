@@ -31,4 +31,11 @@ class HandlerTestBase extends AnyFlatSpec with Matchers {
     statusCheck && bodyCheck
   }
 
+  def checkPlainText(actual: IO[Response[IO]], expectedStatus: Status, expectedBody: String): Boolean = {
+    val actualResp: Response[IO] = actual.unsafeRunSync()
+    val statusCheck              = actualResp.status == expectedStatus
+    val bodyCheck                = EntityDecoder.decodeText(actualResp).unsafeRunSync() == expectedBody
+    statusCheck && bodyCheck
+  }
+
 }

@@ -1,18 +1,14 @@
 package it.agilelab.spinframework.app.api.mapping
 
-import io.circe.{ Decoder, JsonObject }
+import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import io.circe.parser._
 import io.circe.syntax.EncoderOps
 import it.agilelab.spinframework.app.api.mapping.ProvisioningInfoMapper.InnerJson
 import it.agilelab.spinframework.app.features.compiler.TerraformOutput
 import it.agilelab.spinframework.app.features.provision.{ ProvisionResult, ProvisioningStatus }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import io.circe._
-import io.circe.parser._
-import io.circe.generic.semiauto._
-
-import scala.collection.immutable
 
 class ProvisioninInfoMapperTest extends AnyFlatSpec with Matchers {
 

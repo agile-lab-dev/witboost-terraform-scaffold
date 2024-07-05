@@ -22,6 +22,6 @@ trait Configuration extends ConfigurationModel {
 
 }
 
-/** A private implementation of [[Configuration]] to be used only inside the framework.
+/** An implementation of [[Configuration]]
   */
-private[app] object Configuration extends Configuration
+object Configuration extends Configuration

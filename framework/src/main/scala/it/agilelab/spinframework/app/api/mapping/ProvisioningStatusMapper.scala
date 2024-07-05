@@ -1,8 +1,8 @@
 package it.agilelab.spinframework.app.api.mapping
 
-import it.agilelab.spinframework.app.api.generated.definitions.{ Info, ProvisioningStatus }
-import it.agilelab.spinframework.app.features.provision.ProvisioningStatus._
+import it.agilelab.spinframework.app.api.generated.definitions.ProvisioningStatus
 import it.agilelab.spinframework.app.features.provision.ProvisionResult
+import it.agilelab.spinframework.app.features.provision.ProvisioningStatus._
 
 object ProvisioningStatusMapper {
 
@@ -10,7 +10,7 @@ object ProvisioningStatusMapper {
     result.provisioningStatus match {
       case Completed =>
         ProvisioningStatus(ProvisioningStatus.Status.Completed, "", info = ProvisioningInfoMapper.from(result))
-      case Failed    => ProvisioningStatus(ProvisioningStatus.Status.Failed, "")
+      case Failed    => ProvisioningStatus(ProvisioningStatus.Status.Failed, result.errors.mkString(","))
       case Running   => ProvisioningStatus(ProvisioningStatus.Status.Running, "")
     }
 
@@ -20,5 +20,4 @@ object ProvisioningStatusMapper {
       case Failed    => ProvisioningStatus(ProvisioningStatus.Status.Failed, "")
       case Running   => ProvisioningStatus(ProvisioningStatus.Status.Running, "")
     }
-
 }
