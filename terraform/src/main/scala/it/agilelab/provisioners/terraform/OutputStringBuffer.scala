@@ -10,7 +10,7 @@ private[terraform] class OutputStringBuffer extends ProcessOutput {
   override def clear(): Unit = outputLines.clear()
 
   override def addLine(line: String): Unit = {
-    logger.info(line)
+    logger.debug(line)
     outputLines += line
   }
 

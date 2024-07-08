@@ -14,4 +14,5 @@ variable "storage_account_name" {
 
 variable "ownerPrincipals" {
   type = string
+  default = "john,alice"
 }

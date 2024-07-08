@@ -22,8 +22,13 @@ private[terraform] class TerraformCommandsWrapper(
   override def doApply(vars: TerraformVariables): TerraformResult =
     run(s"terraform -chdir=$directory apply ${vars.toOptions} -auto-approve $jsonOption $inputOption")
 
-  override def doPlan(vars: TerraformVariables): TerraformResult =
-    run(s"terraform -chdir=$directory plan ${vars.toOptions} $jsonOption $inputOption")
+  override def doPlan(vars: TerraformVariables): TerraformResult = {
+    val result = run(s"terraform -chdir=$directory plan ${vars.toOptions} $jsonOption $inputOption -out tfplan")
+    if (result.isSuccess) {
+      processor.run(s"terraform -chdir=$directory show tfplan")
+    }
+    result
+  }
 
   override def doInit(configs: BackendConfigs): TerraformResult =
     run(
