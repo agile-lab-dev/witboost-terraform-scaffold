@@ -1,6 +1,7 @@
 package it.agilelab.spinframework.app.features.provision
 
-import it.agilelab.spinframework.app.features.compiler.ComponentDescriptor
+import io.circe.Json
+import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ImportBlock, InputParams }
 
 /** This trait represents the operations performed on cloud provider to
   * actually create all resources required by the provision request.
@@ -45,5 +46,18 @@ trait CloudProvider {
     resultDescriptor: ComponentDescriptor,
     requestDescriptor: ComponentDescriptor,
     refs: Set[String]
+  ): ProvisionResult
+
+  /** Receives the catalogInfo and Input Params and forwards a reverse request to the cloud provider.
+    *
+    * @param useCaseTemplateId is the id of the use useCaseTemplate mapped with the reverse provisioning template
+    * @param catalogInfo contains the catalog info of the component to reverse provision
+    * @param inputParams contains the list of input parameters
+    * @return the state of the operation
+    */
+  def reverse(
+    useCaseTemplateId: String,
+    catalogInfo: ComponentDescriptor,
+    inputParams: InputParams
   ): ProvisionResult
 }

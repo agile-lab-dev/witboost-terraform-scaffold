@@ -339,3 +339,69 @@ You can refer to Witboost documentation for a better understanding of the reques
 ## Unprovisioning
 
 The `unprovision` endpoint takes care about destroying the provisioned resources. The endpoint honours the `removeData` parameter, it will therefore skip the destroy operation for components of type `storage` when `false`.
+
+## Reverse Provisioning
+
+The `ReverseProvisioning` functionality helps the user to import existing resources. 
+The reverse provisioning logic itself 
+- materializes an `import.tf` file in the Terraform context, containing a list of [import blocks](https://developer.hashicorp.com/terraform/language/import)
+- performs a `plan` and returns the output in a human-readable format. The status of the operation also depends on the `skipSafetyChecks` flag 
+- if the operation is successfuly completed, outputs are returned to make sure the imports will be applied in the next deploy operation
+
+**Attention!** 
+It is important to understand that the reverse provisioning only plans the import, allowing the user to iterate over the result in order to fine tune the import. But the actual import (i.e. the `terraform apply`) will only happen during the next deploy.
+
+### Variables
+
+The variables used during this operation are created with same logic of the [mappings](#Mapping).
+
+**Attention!**
+As of now, the reverse provisioning endpoint receives the catalog-info as input, and not the data product descriptor. For this reason, mappings that reference variables outside the scope of the component will fail to parse.
+
+The following mapping will fail to parse, because of the `environment` variable. The `resource_group` will be correctly extracted from the catalog-info.
+```
+descriptorToVariablesMapping = {
+    resource_group = "$.dataProduct.components[?(@.id == '{{componentIdToProvision}}')].specific.resourceGroup"
+    environment = "$.dataProduct.environment"
+}
+```
+
+### Input Params
+
+The reverse provisioning endpoint receives as input the catalog-info of the component, and a `params` object, which contains the `skipSafetyChecks` flag and all the necessary information to build the `import.tf` file.
+
+#### import.tf
+
+This is an example of the `import.tf` file.
+
+```terraform
+import {
+  to = azurerm_storage_account.st_account
+  id = "i-abcd1234"
+}
+import {
+  to = azurerm_storage_data_lake_gen2_filesystem.filesystem["default"]
+  id = "i-abcdABC"
+}
+// ...
+```
+
+#### skipSafetyChecks
+
+As the import in terraform is a sensitive operation, we must be very careful in deciding whether the resulting plan is a success or a failure.
+
+When importing an existing resource, the variable specified by the terraform modules are checked against the properties of the existing resources. If the variables don't match, terraform will propose to either update the properties in place or re-create the whole resource.
+Re-creating a resource means destroying the resource in the first place, which can lead to data loss.
+Of course this highly depends on the resources and on the specific use case, for this reason we must provide a safety valve to control this behaviour. 
+
+By default, the `skipSafetyChecks` flag is set to `false`, ensuring that:
+- if the plan proposes N (with N > 0) destroys, the operation is marked as fail
+- if the plan proposes 0 imports, the operation is marked as fail
+
+For consistency, this flag is also honoured in the validation logic.
+
+### Outputs
+
+A successful reverse provisioning operation returns:
+- the `import blocks`, to be sure that the next test/deploy operation will embed the imports
+- the `skipSafetyChecks` flag

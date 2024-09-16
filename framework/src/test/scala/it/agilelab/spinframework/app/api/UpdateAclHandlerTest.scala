@@ -2,6 +2,7 @@ package it.agilelab.spinframework.app.api
 
 import cats.effect.IO
 import com.typesafe.config.Config
+import io.circe.Json
 import it.agilelab.spinframework.app.api.generated.Resource
 import it.agilelab.spinframework.app.api.generated.definitions.{
   ProvisionInfo,
@@ -20,13 +21,15 @@ import org.http4s.{ Method, Request, Response, Status }
 class UpdateAclHandlerTest extends HandlerTestBase {
 
   class ProvisionStub extends Provision {
-    override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult               =
+    override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult                =
       ProvisionResult.completed()
-    override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean, cfg: Config): ProvisionResult  =
+    override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean, cfg: Config): ProvisionResult   =
       ProvisionResult.completed()
-    override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult =
+    override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult  =
       ProvisionResult.completed()
-    override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult                                = ProvisionResult.completed()
+    override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult                                 = ProvisionResult.completed()
+    override def doReverse(useCaseTemplateId: String, catalogInfo: Json, inputParams: Json): ProvisionResult =
+      ProvisionResult.completed()
   }
 
   "The server" should "return a 500 error" in {

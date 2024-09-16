@@ -1,11 +1,15 @@
 package it.agilelab.spinframework.app.features.provision
 
 import com.typesafe.config.Config
-import it.agilelab.spinframework.app.api.generated.definitions.ProvisionInfo
+import io.circe.Json
+import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
+import it.agilelab.spinframework.app.api.generated.definitions.{ Log, ProvisionInfo }
 import it.agilelab.spinframework.app.config.Configuration.provisionerConfig
 import it.agilelab.spinframework.app.config.{ PrincipalMapperPluginLoader, SpecificProvisionerDependencies }
 import it.agilelab.spinframework.app.features.compiler._
+import it.agilelab.spinframework.app.features.compiler.circe.{ CirceParsedCatalogInfo, CirceParsedDescriptor }
 import it.agilelab.spinframework.app.utils.JsonPathUtils
+import it.agilelab.spinframework.app.utils.LogUtils.addLog
 import org.slf4j.{ Logger, LoggerFactory }
 
 import scala.util.{ Failure, Success }
@@ -147,6 +151,36 @@ class ProvisionService(
               )
             )
         }
+    }
+
+  }
+
+  override def doReverse(useCaseTemplateId: String, catalogInfo: Json, rawInputParams: Json): ProvisionResult = {
+    logger.info("Starting reverse provisioning process")
+
+    val componentDescriptor: ComponentDescriptor = CirceParsedCatalogInfo(catalogInfo)
+    val inputParams: Either[String, InputParams] = rawInputParams
+      .as[InputParams]
+      .fold(
+        l => {
+          val msg = "Could not decode input params"
+          logger.error(msg, l)
+          Left(msg)
+        },
+        r => Right(r)
+      )
+
+    val res: Either[String, (CloudProvider, String, InputParams)] = for {
+      inputParams   <- inputParams
+      cloudProvider <- specific.cloudProvider(useCaseTemplateId)
+    } yield (cloudProvider, useCaseTemplateId, inputParams)
+
+    res match {
+      case Right((cloudProvider, useCaseTemplateId, inputParams)) =>
+        cloudProvider.reverse(useCaseTemplateId, componentDescriptor, inputParams)
+      case Left(message)                                          =>
+        logger.error("Could not build the cloud provider: {}", message)
+        ProvisionResult.failureWithLogs(Seq(addLog(message, Log.Level.Error)))
     }
 
   }

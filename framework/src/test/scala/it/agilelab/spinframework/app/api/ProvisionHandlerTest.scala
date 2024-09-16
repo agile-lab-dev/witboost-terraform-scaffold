@@ -3,7 +3,7 @@ package it.agilelab.spinframework.app.api
 import cats.MonadThrow
 import cats.effect.IO
 import com.typesafe.config.Config
-import io.circe.JsonObject
+import io.circe.{ Json, JsonObject }
 import io.circe.generic.auto._
 import io.circe.syntax._
 import it.agilelab.spinframework.app.api.generated.Resource
@@ -28,13 +28,15 @@ import org.http4s.{ EntityDecoder, MediaRange, Method, Request, Response, Status
 
 class ProvisionHandlerTest extends HandlerTestBase {
   class ProvisionStub extends AsyncProvision {
-    override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): IO[ProvisionResult]               =
+    override def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config): IO[ProvisionResult]                =
       IO.pure(ProvisionResult.completed())
-    override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean, cfg: Config): IO[ProvisionResult]  =
+    override def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean, cfg: Config): IO[ProvisionResult]   =
       IO.pure(ProvisionResult.completed())
-    override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): IO[ProvisionResult] =
+    override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): IO[ProvisionResult]  =
       IO.pure(ProvisionResult.completed())
-    override def doValidate(yamlDescriptor: YamlDescriptor): IO[ProvisionResult]                                =
+    override def doValidate(yamlDescriptor: YamlDescriptor): IO[ProvisionResult]                                 =
+      IO.pure(ProvisionResult.completed())
+    override def doReverse(useCaseTemplateId: String, catalogInfo: Json, inputParams: Json): IO[ProvisionResult] =
       IO.pure(ProvisionResult.completed())
   }
 

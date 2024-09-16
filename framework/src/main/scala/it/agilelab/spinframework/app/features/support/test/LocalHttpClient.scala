@@ -1,11 +1,13 @@
 package it.agilelab.spinframework.app.features.support.test
 
 import com.google.gson._
+import io.circe.{ parser, Json }
 import it.agilelab.spinframework.app.api.generated.definitions.ProvisioningStatus.{ Status => PS }
-import it.agilelab.spinframework.app.api.generated.definitions.{ DescriptorKind, ValidationError }
+import it.agilelab.spinframework.app.api.generated.definitions.ReverseProvisioningStatus.{ Status => RPS }
+import it.agilelab.spinframework.app.api.generated.definitions.{ DescriptorKind, Log, ValidationError }
 import requests.Response
 
-import java.lang.reflect.Type
+import java.lang.reflect.{ ParameterizedType, Type }
 
 class LocalHttpClient(val port: Int, val pref: Option[String] = None) {
   // WARNING: interface MUST BE "localhost", otherwise tests on Jenkins will break!
@@ -14,11 +16,14 @@ class LocalHttpClient(val port: Int, val pref: Option[String] = None) {
   private val prefix      = pref.getOrElse(s"/datamesh.specificprovisioner")
   private val gsonBuilder = new GsonBuilder()
   gsonBuilder.registerTypeAdapter(classOf[PS], new StatusDeserializer)
+  gsonBuilder.registerTypeAdapter(classOf[RPS], new ReverseProvisioningStatusDeserializer)
   gsonBuilder.registerTypeAdapter(classOf[DescriptorKind], new DescriptorKindSerializer)
   gsonBuilder.registerTypeAdapter(classOf[Option[Any]], new OptionSerializer)
   gsonBuilder.registerTypeAdapter(classOf[Vector[String]], new VectorSerializer)
   gsonBuilder.registerTypeAdapter(classOf[Vector[String]], new VectorDeserializer)
-  gsonBuilder.registerTypeAdapter(classOf[Option[ValidationError]], new OptionVEDeserializer)
+  gsonBuilder.registerTypeAdapter(classOf[io.circe.Json], new CirceJsonDeserializer)
+  gsonBuilder.registerTypeAdapter(classOf[io.circe.Json], new CirceJsonSerializer)
+  gsonBuilder.registerTypeAdapter(classOf[Option[Any]], new OptionDeserializer)
 
   private val gson = gsonBuilder.create
 
@@ -54,6 +59,11 @@ class LocalHttpClient(val port: Int, val pref: Option[String] = None) {
 
 }
 
+class ReverseProvisioningStatusDeserializer extends JsonDeserializer[RPS] {
+  override def deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): RPS =
+    RPS.from(json.getAsString).get
+}
+
 class StatusDeserializer extends JsonDeserializer[PS] {
   override def deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): PS =
     PS.from(json.getAsString).get
@@ -64,20 +74,25 @@ class DescriptorKindSerializer extends JsonSerializer[DescriptorKind] {
     new JsonPrimitive(src.value)
 }
 
-class OptionSerializer     extends JsonSerializer[Option[Any]]               {
+class OptionSerializer extends JsonSerializer[Option[Any]] {
   override def serialize(src: Option[Any], typeOfSrc: Type, context: JsonSerializationContext): JsonElement =
     src match {
       case Some(value) => context.serialize(value)
       case None        => JsonNull.INSTANCE
     }
 }
-class OptionVEDeserializer extends JsonDeserializer[Option[ValidationError]] {
-  override def deserialize(
-    json: JsonElement,
-    typeOfT: Type,
-    context: JsonDeserializationContext
-  ): Option[ValidationError] =
-    Some(context.deserialize(json, classOf[ValidationError]))
+
+class OptionDeserializer extends JsonDeserializer[Option[_]] {
+  def innerType(outerType: Type)                                                                             = outerType match {
+    case pt: ParameterizedType => pt.getActualTypeArguments()(0)
+    case _                     => throw new UnsupportedOperationException(outerType.toString)
+  }
+  override def deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): Option[_] =
+    json match {
+      case null                 => None
+      case _ if json.isJsonNull => None
+      case _                    => Some(context.deserialize(json, innerType(typeOfT)))
+    }
 }
 
 class VectorSerializer extends JsonSerializer[Vector[String]] {
@@ -88,4 +103,14 @@ class VectorSerializer extends JsonSerializer[Vector[String]] {
 class VectorDeserializer extends JsonDeserializer[Vector[String]] {
   override def deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): Vector[String] =
     new Gson().fromJson(json.getAsJsonArray, classOf[Array[String]]).toVector
+}
+
+class CirceJsonDeserializer extends JsonDeserializer[io.circe.Json] {
+  override def deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): io.circe.Json =
+    parser.parse(json.getAsString).getOrElse(Json.Null)
+}
+
+class CirceJsonSerializer extends JsonSerializer[io.circe.Json] {
+  override def serialize(src: Json, typeOfSrc: Type, context: JsonSerializationContext): JsonElement =
+    context.serialize(src.toString())
 }

@@ -1,6 +1,8 @@
 package it.agilelab.spinframework.app.cloudprovider
 
-import it.agilelab.spinframework.app.features.compiler.ComponentDescriptor
+import io.circe.Json
+import it.agilelab.spinframework.app.cloudprovider.CloudProviderStub.reverse
+import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, InputParams }
 import it.agilelab.spinframework.app.features.provision.{ CloudProvider, ProvisionResult }
 
 object CloudProviderStub {
@@ -8,6 +10,7 @@ object CloudProviderStub {
   type UnprovisionFunction = (ComponentDescriptor, Set[String], Boolean) => ProvisionResult
   type UpdateAclFcuntion   = (ComponentDescriptor, ComponentDescriptor, Set[String]) => ProvisionResult
   type ValidateFunction    = ComponentDescriptor => ProvisionResult
+  type ReverseFunction     = (String, ComponentDescriptor, InputParams) => ProvisionResult
 
   def provision(function: ProvisionFunction): CloudProviderStub     = new CloudProviderStub {
     override def provision(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult =
@@ -24,7 +27,16 @@ object CloudProviderStub {
   def validate(function: ValidateFunction): CloudProviderStub       = new CloudProviderStub {
     override def validate(descriptor: ComponentDescriptor): ProvisionResult = function.apply(descriptor)
   }
-  def updateAcl(function: UpdateAclFcuntion): CloudProviderStub     = new CloudProviderStub {
+
+  def reverse(function: ReverseFunction): CloudProviderStub = new CloudProviderStub {
+    override def reverse(
+      useCaseTemplateId: String,
+      catalogInfo: ComponentDescriptor,
+      inputParams: InputParams
+    ): ProvisionResult = function.apply(useCaseTemplateId, catalogInfo, inputParams)
+  }
+
+  def updateAcl(function: UpdateAclFcuntion): CloudProviderStub = new CloudProviderStub {
     override def updateAcl(
       resultDescriptor: ComponentDescriptor,
       requestDescriptor: ComponentDescriptor,
@@ -62,4 +74,10 @@ class CloudProviderStub extends CloudProvider {
     throw new UnsupportedOperationException
 
   override def validate(descriptor: ComponentDescriptor): ProvisionResult = throw new UnsupportedOperationException
+
+  override def reverse(
+    useCaseTemplateId: String,
+    catalogInfo: ComponentDescriptor,
+    inputParams: InputParams
+  ): ProvisionResult = throw new UnsupportedOperationException
 }

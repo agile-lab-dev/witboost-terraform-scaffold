@@ -22,6 +22,13 @@ trait TerraformCommands {
     */
   def doPlan(variables: TerraformVariables = noVariable()): TerraformResult
 
+  /** Performs a 'terraform show' of a 'terraform plan'.
+    *
+    * @param resPlan represents the `TerraformResult` of the terraform plan
+    * @return the plan, in the human readable format, or None if the current command or the previous plan failed
+    */
+  def getHumanReadablePlan(resPlan: TerraformResult): Option[String]
+
   /** Performs a 'terraform apply'.
     *
     * @param variables an instance of TerraformVariables to specify configuration paramters.

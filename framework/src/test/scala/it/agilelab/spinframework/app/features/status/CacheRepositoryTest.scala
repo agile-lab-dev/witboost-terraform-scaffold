@@ -3,9 +3,12 @@ package it.agilelab.spinframework.app.features.status
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits.catsSyntaxParallelSequence1
-import it.agilelab.spinframework.app.features.provision.ComponentToken
+import io.circe.Json
+import it.agilelab.spinframework.app.api.generated.definitions.Log
+import it.agilelab.spinframework.app.features.provision.{ ComponentToken, ProvisionResult }
 import it.agilelab.spinframework.app.features.status.TaskOperation.{ PROVISION, VALIDATE }
 import it.agilelab.spinframework.app.features.status.TaskStatus.{ COMPLETED, FAILED, RUNNING, WAITING }
+import it.agilelab.spinframework.app.utils.LogUtils.addLog
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should
 
@@ -175,6 +178,32 @@ class CacheRepositoryTest extends AsyncFlatSpec with should.Matchers with AsyncI
       repo.deleteTask(id).map { deletedTask =>
         deletedTask shouldBe None
       }
+  }
+
+  it should "correctly stores a task from a ProvisionResult and retrieves its Info" in {
+    val repo = new CacheRepository
+    val id   = ComponentToken("id")
+
+    fill(
+      repo,
+      List(
+        Task.fromProvisionResult(
+          ProvisionResult
+            .completed(changes = Json.True, logs = Seq(addLog("Some log", Log.Level.Info)))
+            .copy(componentToken = id),
+          TaskOperation.REVERSE
+        )
+      )
+    ) *>
+      repo
+        .findTask(id)
+        .map(_.orNull)
+        .map(t => Task.toProvisionResult(t))
+        .map { pr =>
+          pr.changes shouldBe Json.True
+          pr.logs.size shouldBe 1
+          pr.logs.head.message should include("Some log")
+        }
   }
 
   private def fill(repo: TaskRepository, tasks: Seq[Task]): IO[Seq[Task]] =

@@ -6,16 +6,23 @@ import it.agilelab.spinframework.app.api.generated.definitions.{
   ReverseProvisioningRequest,
   SystemError,
   UpdateAclRequest,
+  ValidationError,
   ValidationRequest,
   ValidationResult
 }
 import it.agilelab.spinframework.app.api.generated.{ Handler, Resource }
-import it.agilelab.spinframework.app.api.mapping.{ ProvisioningStatusMapper, ValidationErrorMapper }
+import it.agilelab.spinframework.app.api.mapping.{
+  ProvisioningStatusMapper,
+  ReverseProvisioningStatusMapper,
+  ValidationErrorMapper
+}
 import it.agilelab.spinframework.app.features.compiler.{ Compile, YamlDescriptor }
 import it.agilelab.spinframework.app.features.provision.ProvisioningStatus.{ Completed, Failed, Running }
 import it.agilelab.spinframework.app.features.provision.{ AsyncProvision, ComponentToken }
 import it.agilelab.spinframework.app.features.status.GetStatus
 import org.slf4j.{ Logger, LoggerFactory }
+
+import scala.None
 
 class SpecificProvisionerHandler(provision: AsyncProvision, compile: Compile, checkStatus: GetStatus)
     extends Handler[IO] {
@@ -149,17 +156,44 @@ class SpecificProvisionerHandler(provision: AsyncProvision, compile: Compile, ch
   }
   override def runReverseProvisioning(respond: Resource.RunReverseProvisioningResponse.type)(
     body: ReverseProvisioningRequest
-  ): IO[Resource.RunReverseProvisioningResponse] = IO {
-    Resource.RunReverseProvisioningResponse.InternalServerError(
-      SystemError("The reverseProvisioning operation is not supported")
-    )
-  }
+  ): IO[Resource.RunReverseProvisioningResponse] =
+    body match {
+      case ReverseProvisioningRequest(useCaseTemplateId, _, Some(params), Some(cInfo)) =>
+        provision.doReverse(useCaseTemplateId, cInfo, params).map { result =>
+          result.provisioningStatus match {
+            case Running   => Resource.RunReverseProvisioningResponse.Accepted(result.componentToken.asString)
+            case Completed => Resource.RunReverseProvisioningResponse.Ok(ReverseProvisioningStatusMapper.from(result))
+            case Failed    =>
+              Resource.RunReverseProvisioningResponse.Ok(ReverseProvisioningStatusMapper.from(result))
+          }
+        }
+      case _                                                                           =>
+        IO {
+          logger.error(
+            "It was not possible to parse the ReverseProvisioningRequest, CatalogInfo or InputParams are not present"
+          )
+          Resource.RunReverseProvisioningResponse.BadRequest(
+            ValidationError(Vector("CatalogInfo or InputParams are not present"))
+          )
+        }
+    }
 
   override def getReverseProvisioningStatus(respond: Resource.GetReverseProvisioningStatusResponse.type)(
     token: String
-  ): IO[Resource.GetReverseProvisioningStatusResponse] = IO {
-    Resource.GetReverseProvisioningStatusResponse.InternalServerError(
-      SystemError("The reverseProvisioningStatus operation is not supported")
-    )
-  }
+  ): IO[Resource.GetReverseProvisioningStatusResponse] =
+    checkStatus
+      .statusOf(ComponentToken(token))
+      .map { status =>
+        status
+          .fold[Resource.GetReverseProvisioningStatusResponse](
+            Resource.GetReverseProvisioningStatusResponse
+              .InternalServerError(SystemError(s"Couldn't find operation for token '$token'"))
+          ) { result =>
+            val statusDto = ReverseProvisioningStatusMapper.from(result)
+            Resource.GetReverseProvisioningStatusResponse.Ok(statusDto)
+          }
+      }
+      .handleError((f: Throwable) =>
+        Resource.GetReverseProvisioningStatusResponse.InternalServerError(systemError(f, Status))
+      )
 }

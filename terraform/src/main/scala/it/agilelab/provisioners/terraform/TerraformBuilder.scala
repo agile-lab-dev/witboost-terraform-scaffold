@@ -3,8 +3,7 @@ package it.agilelab.provisioners.terraform
 /** A builder that allows to specify a series of options and parameters to interact with Terraform.
   */
 class TerraformBuilder {
-  private val output               = new OutputStringBuffer()
-  private var processor: Processor = new ScalaProcessor(output)
+  private var processor: Processor = new ScalaProcessor
   private var jsonOption           = false
   private var logger               = TerraformLogger.noLog
 

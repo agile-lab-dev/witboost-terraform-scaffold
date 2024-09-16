@@ -1,10 +1,28 @@
 package it.agilelab.provisioners.features.provider
 
+import io.circe.{ parser, Encoder }
+import io.circe.syntax.EncoderOps
 import it.agilelab.provisioners.features.descriptor.TerraformOutputsDescriptor
 import it.agilelab.provisioners.terraform._
-import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ErrorMessage, TerraformOutput }
-import it.agilelab.spinframework.app.features.provision.{ CloudProvider, ProvisionResult }
+import it.agilelab.spinframework.app.api.generated.definitions.Log
+import it.agilelab.spinframework.app.features.compiler.circe.CirceParsedCatalogInfo
+import it.agilelab.spinframework.app.features.compiler.{
+  ComponentDescriptor,
+  ErrorMessage,
+  Field,
+  ImportBlock,
+  InputParams,
+  ReverseChanges,
+  TerraformOutput
+}
+import it.agilelab.spinframework.app.features.provision.{
+  CloudProvider,
+  ComponentToken,
+  ProvisionResult,
+  ProvisioningStatus
+}
 import it.agilelab.spinframework.app.utils.JsonPathUtils
+import it.agilelab.spinframework.app.utils.LogUtils.addLog
 import org.slf4j.{ Logger, LoggerFactory }
 
 import java.nio.file.Path
@@ -19,14 +37,14 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
     * @param descriptor the component descriptor
     * @param pathBuilder a function that transform the path based on the caller needs
     * @param stateKeyMapper a function that is applied on the rendered state key.
-    * @param f the provisioning/unprovisioning/updateAcl logic
+    * @param f the provisioning/unprovisioning/updateAcl logic. The inputs are an instance of TerraformCommands and the path of the terraform context
     * @return the result of the wrapped operation
     */
   def withContext(
     descriptor: ComponentDescriptor,
     pathBuilder: String => String,
     stateKeyMapper: Option[String => String] = None,
-    f: TerraformCommands => ProvisionResult
+    f: (TerraformCommands, String) => ProvisionResult
   ): ProvisionResult =
     FilesUtils.createTfContext(terraformModule.path) match {
       case Failure(e)           =>
@@ -42,7 +60,7 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
           case Right(_) =>
             // -----------------------
             // Core logic happens here
-            val res = f(terraform)
+            val res = f(terraform, contextPath)
             // -----------------------
             // delete the context
             FilesUtils.deleteDirectory(Path.of(contextPath))
@@ -55,25 +73,37 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
       descriptor,
       contextPath => Path.of(contextPath).toString,
       None,
-      terraform =>
+      (terraform, contextPath) =>
         variablesFrom(descriptor) match {
           case Left(l)     => ProvisionResult.failure(l)
           case Right(vars) =>
-            val extendedVars = TerraformVariables(vars.variables + ("ownerPrincipals" -> mappedOwners.mkString(",")))
-            val applyResult  = terraform.doApply(extendedVars)
-            if (applyResult.isSuccess) {
-              ProvisionResult.completed(
-                applyResult.terraformOutputs match {
-                  case Right(r) => r.filter(!_.sensitive).map(o => TerraformOutput(name = o.name, o.value))
-                  // If the parsing of terraform output fails, an empty seq is returned.
-                  // The provisioning is considered successful, but no output will be returned back to the coordinator
-                  case Left(f)  =>
-                    logger.error("An error occurred while trying to extract outputs from terraform execution", f)
-                    Seq.empty
+            val extendedVars   = TerraformVariables(vars.variables + ("ownerPrincipals" -> mappedOwners.mkString(",")))
+            val reverseChanges = ReverseChanges.reverseChangesFromDescriptor(descriptor) match {
+              case Left(err) =>
+                logger.warn("ImportBlocks were not present, or it was not possible to retrieve them: {}", err)
+                ReverseChanges(Seq(), skipSafetyChecks = false)
+              case Right(r)  => r
+            }
+            FilesUtils.createImportFile(reverseChanges.imports, Path.of(contextPath)) match {
+              case Success(_) =>
+                val applyResult = terraform.doApply(extendedVars)
+                if (applyResult.isSuccess) {
+                  ProvisionResult.completed(
+                    applyResult.terraformOutputs match {
+                      case Right(r) => r.filter(!_.sensitive).map(o => TerraformOutput(name = o.name, o.value))
+                      // If the parsing of terraform output fails, an empty seq is returned.
+                      // The provisioning is considered successful, but no output will be returned back to the coordinator
+                      case Left(f)  =>
+                        logger.error("An error occurred while trying to extract outputs from terraform execution", f)
+                        Seq.empty
+                    }
+                  )
+                } else {
+                  ProvisionResult.failure(applyResult.errorMessages.map(ErrorMessage))
                 }
-              )
-            } else
-              ProvisionResult.failure(applyResult.errorMessages.map(ErrorMessage))
+              case Failure(f) =>
+                ProvisionResult.failure(Seq(ErrorMessage(f.getMessage)))
+            }
         }
     )
 
@@ -100,7 +130,7 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
             descriptor,
             contextPath => Path.of(contextPath).toString,
             None,
-            terraform =>
+            (terraform, _) =>
               variablesFrom(descriptor) match {
                 case Left(l)     => ProvisionResult.failure(l)
                 case Right(vars) =>
@@ -114,7 +144,7 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
               }
           )
         } else {
-          logger.warn(s"Component unprovisioned without actions due to the removeData field")
+          logger.warn("Component unprovisioned without actions due to the removeData field")
           ProvisionResult.completed()
         }
 
@@ -144,7 +174,7 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
         descriptor,
         contextPath => Path.of(contextPath, "acl").toString,
         None,
-        terraform => {
+        (terraform, _) => {
           // At this time we don't have principals, hence a "tf plan" is not possible
           // We proceed with a simpler "tf validate"
           val result = terraform.doValidate()
@@ -173,15 +203,50 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
         descriptor,
         contextPath => Path.of(contextPath).toString,
         None,
-        terraform =>
+        (terraform, contextPath) =>
           variablesFrom(descriptor) match {
             case Left(l)     => ProvisionResult.failure(l)
             case Right(vars) =>
-              val res = terraform.doPlan(vars)
-              if (res.isSuccess) {
-                ProvisionResult.completed()
-              } else {
-                ProvisionResult.failure(res.errorMessages.map(ErrorMessage))
+              val reverseChanges = ReverseChanges.reverseChangesFromDescriptor(descriptor) match {
+                case Left(err) =>
+                  logger.warn("ImportBlocks were not present, or it was not possible to retrieve them: {}", err)
+                  ReverseChanges(Seq(), skipSafetyChecks = false)
+                case Right(r)  => r
+              }
+              FilesUtils.createImportFile(reverseChanges.imports, Path.of(contextPath)) match {
+                case Success(_) =>
+                  val res = terraform.doPlan(vars)
+                  if (res.isSuccess) {
+                    val plan = terraform.getHumanReadablePlan(res)
+                    plan.fold(logger.warn("It was not possible to extract an human readable version of the plan"))(s =>
+                      logger.debug(s)
+                    )
+                    res.terraformChanges match {
+                      case Left(l)  =>
+                        val error =
+                          "It was not possible to parse the result of the plan, for safety reason we need to fail"
+                        logger.error(error, l)
+                        ProvisionResult.failure(Seq(ErrorMessage(l)))
+                      case Right(r) =>
+                        if (!reverseChanges.skipSafetyChecks && r.changes.removals > 0) {
+                          val error =
+                            s"The plan is proposing to destroy ${r.changes.removals} resources, but the skipSafetyChecks is disabled."
+                          logger.warn(error)
+                          ProvisionResult.failure(Seq(ErrorMessage(error)))
+                        } else {
+                          if (r.changes.removals > 0) {
+                            logger.warn(
+                              s"The plan is proposing to destroy ${r.changes.removals} resources, and skipSafetyChecks is enabled. Proceeding."
+                            )
+                          }
+                          ProvisionResult.completed()
+                        }
+                    }
+                  } else {
+                    ProvisionResult.failure(res.errorMessages.map(ErrorMessage))
+                  }
+                case Failure(f) =>
+                  ProvisionResult.failure(Seq(ErrorMessage(f.getMessage)))
               }
           }
       )
@@ -215,7 +280,7 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
       requestDescriptor,
       contextPath => Path.of(contextPath, "acl").toString,
       Some(stateKeyMapper),
-      terraformAcl =>
+      (terraformAcl, _) =>
         TerraformOutputsDescriptor(resultDescriptor).mapOutputs match {
           case Right(m) =>
             val v           = m + ("principals" -> refs.mkString(","))
@@ -230,6 +295,71 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
     )
   }
 
+  override def reverse(
+    useCaseTemplateId: String,
+    catalogInfo: ComponentDescriptor,
+    inputParams: InputParams
+  ): ProvisionResult = {
+    withContext(
+      catalogInfo,
+      contextPath => Path.of(contextPath).toString,
+      None,
+      (terraform, contextPath) =>
+        FilesUtils.createImportFile(inputParams.importBlocks, Path.of(contextPath)) match {
+          case Success(_)  =>
+            variablesFrom(catalogInfo) match {
+              case Right(vars)  =>
+                val res            = terraform.doPlan(vars)
+                val prettifiedPlan = terraform
+                  .getHumanReadablePlan(res)
+                  .getOrElse("It was not possible to extract an human readable version of the plan")
+                if (res.isSuccess) {
+                  val logs: Seq[Log] = Seq(addLog(prettifiedPlan, Log.Level.Info))
+                  res.terraformChanges match {
+                    case Right(planChanges) =>
+                      val changes = planChanges.changes
+                      if (!inputParams.skipSafetyChecks && changes.imports == 0) {
+                        val error =
+                          "Plan results in 0 resources to import. As a safety measure, the operation must be aborted."
+                        ProvisionResult.failureWithLogs(logs ++ Seq(addLog(error, Log.Level.Error)))
+                      } else if (!inputParams.skipSafetyChecks && changes.removals > 0) {
+                        val error =
+                          s"Plan results in the destroy of ${changes.removals} resources. As a safety measure, the operation must be aborted."
+                        ProvisionResult.failureWithLogs(logs ++ Seq(addLog(error, Log.Level.Error)))
+                      } else {
+                        val changes = ReverseChanges(inputParams.importBlocks, inputParams.skipSafetyChecks).asJson(
+                          ReverseChanges.customEncoder
+                        )
+                        ProvisionResult.completed(changes, logs)
+                      }
+                    case Left(l)            =>
+                      val error = "It was not possible to parse the result of the plan"
+                      logger.error(error, l)
+                      ProvisionResult.failureWithLogs(
+                        Seq(addLog(res.buildOutputString, Log.Level.Info), addLog(error, Log.Level.Error))
+                      )
+                  }
+                } else {
+                  ProvisionResult.failureWithLogs(res.errorMessages.map(em => addLog(em, Log.Level.Error)))
+                }
+              case Left(errors) =>
+                errors.foreach(e =>
+                  logger.error("It was not possible to extract variables from the catalog info: {}", e)
+                )
+                ProvisionResult.failureWithLogs(errors.map(e => addLog(e.description, Log.Level.Error)))
+            }
+          case Failure(ex) =>
+            logger.error("It was not possible to create the import.tf file", ex)
+            ProvisionResult.failureWithLogs(Seq(addLog(ex.getMessage, Log.Level.Error)))
+        }
+    ) match {
+      case r @ ProvisionResult(ProvisioningStatus.Failed, _, _, _, _, _) =>
+        r.copy(errors = Seq.empty, logs = r.logs ++ r.errors.map(_.description).map(d => addLog(d, Log.Level.Error)))
+      case r                                                             => r
+    }
+
+  }
+
   def variablesFrom(
     descriptor: ComponentDescriptor,
     variableMappings: Option[Map[String, String]] = None
@@ -238,9 +368,18 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
     // read mappings from configs
     // e.g. resource_group_name -> component.specific.resource_group_name
     val mappings: Map[String, String] = variableMappings match {
-      case None    =>
+      case None                                                         =>
         terraformModule.mappings
-      case Some(x) => x
+      case Some(x) if (descriptor.isInstanceOf[CirceParsedCatalogInfo]) =>
+        // This is needed during the reverse provisioning, as I receive the catalog-info and not the DP descriptor
+        // I need to replace the jsonPath coordinates in order to resolve the mappings
+        // Mappings that are out of the scope of the component will fail to parse
+        // Ticket for requesting the descriptor: WS-522
+        x.map { m =>
+          val newPath = m._2.replaceAll("\\$\\.dataProduct\\.components\\[.*\\]", "\\$.spec.mesh")
+          (m._1, newPath)
+        }
+      case Some(x)                                                      => x
     }
 
     // for each key, take the corresponding value
@@ -313,9 +452,18 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
     // read mappings from configs
     // e.g. resource_group_name -> component.specific.resource_group_name
     val mappings: Map[String, String] = backendConfigsMappingsOverride match {
-      case None    =>
+      case None                                                         =>
         terraformModule.backendConfigs
-      case Some(x) => x
+      case Some(x) if (descriptor.isInstanceOf[CirceParsedCatalogInfo]) =>
+        // This is needed during the reverse provisioning, as I receive the catalog-info and not the DP descriptor
+        // I need to replace the jsonPath coordinates in order to resolve the mappings
+        // Mappings that are out of the scope of the component will fail to parse
+        // Ticket for requesting the descriptor: WS-522
+        x.map { m =>
+          val newPath = m._2.replaceAll("\\$\\.dataProduct\\.components\\[.*\\]", "\\$.spec.mesh")
+          (m._1, newPath)
+        }
+      case Some(x)                                                      => x
     }
 
     val stateKey: String = stateKeyOverride match {

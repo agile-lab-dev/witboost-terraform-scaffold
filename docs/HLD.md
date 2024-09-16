@@ -106,3 +106,17 @@ Using the `useCaseTemplateId` field from the descriptor as a key, we have a conf
 ### State management
 
 Each module must handle its own state management, making sure to appropriately segregate DP components with a reasonable `state key` to avoid collisions and use a fault-tolerant and lockable `state store` (remote backends, such as Amazon S3, Azure Blob Storage, or HashiCorp Consul, are a good fit as they provide also better collaboration and security).
+
+## Reverse provisioning
+
+This feature aims to ease the process of importing existing resources within terraform, technically exploiting the `terraform import` under the hood.
+With this functionality, the reverse provisioning receives as input the descriptor and the necessary information to create [import blocks](https://developer.hashicorp.com/terraform/language/import), and fires a plan operation.
+
+The result of the plan operation allows the user to carefully review the import process and, after potential iterations, approve it.
+The reverse provisioning operations eventually emits the import resources as `changes`, which will be used by succeeding operations (test, deploys, etc.).
+
+As the import is a delicate operation, we must provide:
+- an human readable output for the user to ease the review process
+- a safety flag to prevent resources to be destroyed
+
+![Reverse-Provisioning](hld-ReverseProvisioning.png)

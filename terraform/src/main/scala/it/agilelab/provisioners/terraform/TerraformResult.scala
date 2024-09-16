@@ -1,7 +1,7 @@
 package it.agilelab.provisioners.terraform
 
 import io.circe.generic.extras._
-import io.circe.{ parser, Json }
+import io.circe.{ parser, Json, ParsingFailure }
 import org.slf4j.{ Logger, LoggerFactory }
 
 /** The result coming from the execution of a Terraform command.
@@ -64,6 +64,21 @@ class TerraformResult(processResult: ProcessResult) {
 
     } else {
       Right(List.empty[TerraformOutput])
+    }
+
+  /** Returns the changes planned by a 'plan' operation
+    * This is applicable in case of the following terraform operations - Plan.
+    *
+    * @return the planned changes, or a `Throwable` if the operation fails
+    */
+  def terraformChanges: Either[String, PlanChanges] =
+    processResult.buildOutputString
+      .split("\n")
+      .filter(_.contains("change_summary"))
+      .map(l => parser.parse(l))
+      .lastOption match {
+      case None    => Left("No change_summary to extract")
+      case Some(r) => r.flatMap(r => r.as[PlanChanges]).fold(l => Left(l.getMessage), Right(_))
     }
 
   /** Builds a list of strings which comprises of error messages.
@@ -195,6 +210,25 @@ class TerraformResult(processResult: ProcessResult) {
     @JsonKey("@module") module: String,
     @JsonKey("@timestamp") timestamp: String,
     @JsonKey("outputs") outputs: Map[String, Output],
+    @JsonKey("type") typeOf: String
+  )
+
+  @ConfiguredJsonCodec
+  case class Changes(
+    @JsonKey("add") additions: Int,
+    @JsonKey("change") changes: Option[Int],
+    @JsonKey("import") imports: Int,
+    @JsonKey("remove") removals: Int,
+    @JsonKey("operation") operation: String
+  )
+
+  @ConfiguredJsonCodec
+  case class PlanChanges(
+    @JsonKey("@level") level: String,
+    @JsonKey("@message") message: String,
+    @JsonKey("@module") module: String,
+    @JsonKey("@timestamp") timestamp: String,
+    @JsonKey("changes") changes: Changes,
     @JsonKey("type") typeOf: String
   )
 

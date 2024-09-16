@@ -3,6 +3,7 @@ package it.agilelab.spinframework.app.features.provision
 import cats.effect.{ FiberIO, IO }
 import cats.implicits.toTraverseOps
 import com.typesafe.config.Config
+import io.circe.Json
 import it.agilelab.spinframework.app.api.generated.definitions.ProvisionInfo
 import it.agilelab.spinframework.app.features.compiler.{ ErrorMessage, YamlDescriptor }
 import it.agilelab.spinframework.app.features.status.TaskOperation.TaskOperation
@@ -42,6 +43,12 @@ class AsyncProvisionerService(
   override def doValidate(yamlDescriptor: YamlDescriptor): IO[ProvisionResult] = IO.blocking {
     // Validate can be also async, but for now we only care about async provisioning
     provision.doValidate(yamlDescriptor)
+  }
+
+  override def doReverse(useCaseTemplateId: String, catalogInfo: Json, inputParams: Json): IO[ProvisionResult] = {
+    val task = buildTask(TaskOperation.REVERSE)
+    handleTask(task, provision.doReverse(useCaseTemplateId, catalogInfo, inputParams)) *>
+      IO.pure(ProvisionResult.running(task.id))
   }
 
   private def handleTask(task: Task, blockingFunction: => ProvisionResult): IO[FiberIO[Option[Task]]] = {

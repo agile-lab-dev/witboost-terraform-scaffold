@@ -144,3 +144,6 @@ terraform.tfstate.backup
 
 # Helm
 helm/charts
+
+# Terraform plans
+tfplan

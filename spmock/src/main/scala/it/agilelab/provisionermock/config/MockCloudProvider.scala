@@ -1,6 +1,7 @@
 package it.agilelab.provisionermock.config
 
-import it.agilelab.spinframework.app.features.compiler.ComponentDescriptor
+import io.circe.Json
+import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, InputParams }
 import it.agilelab.spinframework.app.features.provision.{ CloudProvider, ProvisionResult }
 
 class MockCloudProvider extends CloudProvider {
@@ -34,6 +35,16 @@ class MockCloudProvider extends CloudProvider {
   override def validate(descriptor: ComponentDescriptor): ProvisionResult = {
     println("######### /validate #########")
     println(descriptor)
+    ProvisionResult.completed()
+  }
+
+  override def reverse(
+    useCaseTemplateId: String,
+    catalogInfo: ComponentDescriptor,
+    inputParams: InputParams
+  ): ProvisionResult = {
+    println("######### /reverse-provisioning #########")
+    println(catalogInfo)
     ProvisionResult.completed()
   }
 }

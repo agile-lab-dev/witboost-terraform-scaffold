@@ -47,7 +47,7 @@ component:
   technology: CDP_S3
   specific:
     tenant_id: eee7e750-299f-468f-a6c3-9f28923f6133
-    subscription_id: 4f336e36-034a-47f0-bbcc-e543d3b2b6a8
+    subscription_id: 00000000-0000-0000-0000-000000000000
     resource_group_name: test-rgn
     storage_account:
       name: storagenamefortest100

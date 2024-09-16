@@ -1,12 +1,21 @@
 package it.agilelab.provisioners.terraform.unit
 
-import io.circe.parser
+import io.circe.{ parser, Json }
 import it.agilelab.provisioners.features.descriptor.TerraformOutputsDescriptor
 import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformModuleLoader }
-import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, Parser, ParserFactory }
+import it.agilelab.spinframework.app.features.compiler.circe.{ CirceParsedCatalogInfo, CirceParsedDescriptor }
+import it.agilelab.spinframework.app.features.compiler.{
+  ComponentDescriptor,
+  Parser,
+  ParserFactory,
+  ParsingResult,
+  YamlDescriptor
+}
 import it.agilelab.spinframework.app.features.provision.ProvisioningStatus
 import it.agilelab.spinframework.app.features.support.test._
+import it.agilelab.spinframework.app.utils.JsonPathUtils
+import org.scalatest.EitherValues._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
@@ -95,10 +104,13 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
       |
       |""".stripMargin
   )
-  private val mockProcessor                   = new MockProcessor(0, "output")
-  private val terraformBuilder                = Terraform()
+
+  val outputString             =
+    "{\"@level\":\"info\",\"@message\":\"Plan: 2 to import, 0 to add, 1 to change, 0 to destroy.\",\"@module\":\"terraform.ui\",\"@timestamp\":\"2024-08-12T10:46:34.822727+02:00\",\"changes\":{\"add\":2,\"change\":0,\"import\":1,\"remove\":0,\"operation\":\"plan\"},\"type\":\"change_summary\"}"
+  private val mockProcessor    = new MockProcessor(0, outputString)
+  private val terraformBuilder = Terraform()
     .processor(mockProcessor)
-  private val tfProvider                      =
+  private val tfProvider       =
     new TfProvider(terraformBuilder, TerraformModuleLoader.from("urn:dmb:utm:airbyte-standard:0.0.0").getOrElse(null))
 
   private val mockProcessorFail    = new MockProcessor(1, "failure")
@@ -253,7 +265,7 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
 
   "validate" should "succeed but acl folder exists" in {
 
-    val mockProcessorFail = new MockProcessor(0, "failure")
+    val mockProcessorFail = new MockProcessor(0, outputString)
 
     val terraformBuilderFail = Terraform()
       .processor(mockProcessorFail)
@@ -466,6 +478,30 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
     vars.isLeft shouldBe false
 
     vars.getOrElse(null).toOptions should include("it\\'s not so ok")
+
+  }
+
+  "variablesFrom" should "return correct var using a catalogInfo" in {
+
+    val str = """
+                |{"check":{
+                |  "bad": "it's not so ok",
+                |  "good": "this is ok"
+                |  }
+                |}
+    """.stripMargin
+
+    val descriptor5: CirceParsedDescriptor = CirceParsedCatalogInfo(parser.parse(str).getOrElse(Json.Null))
+
+    val variableMappings = Some(
+      Map(
+        "check" -> "$.check.good"
+      )
+    )
+
+    val vars = tfProvider.variablesFrom(descriptor5, variableMappings)
+    vars.isLeft shouldBe false
+    vars.value.toOptions should include("this is ok")
 
   }
 

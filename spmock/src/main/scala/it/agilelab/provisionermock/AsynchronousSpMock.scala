@@ -1,9 +1,15 @@
 package it.agilelab.provisionermock
 
 import cats.effect.IO
+import io.circe.Json
 import it.agilelab.spinframework.app.SpecificProvisioner
 import it.agilelab.spinframework.app.config.AsynchronousSpecificProvisionerDependencies
-import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, DescriptorValidator, Validation }
+import it.agilelab.spinframework.app.features.compiler.{
+  ComponentDescriptor,
+  DescriptorValidator,
+  InputParams,
+  Validation
+}
 import it.agilelab.spinframework.app.features.provision.{ CloudProvider, ComponentToken, ProvisionResult }
 import it.agilelab.spinframework.app.features.status.{ CacheRepository, GetStatus, TaskRepository }
 
@@ -28,6 +34,12 @@ class AsynchronousMockDependencies extends AsynchronousSpecificProvisionerDepend
     ): ProvisionResult                                                                                  =
       ProvisionResult.completed()
     override def validate(descriptor: ComponentDescriptor): ProvisionResult                             = ProvisionResult.completed()
+
+    override def reverse(
+      useCaseTemplateId: String,
+      catalogInfo: ComponentDescriptor,
+      inputParams: InputParams
+    ): ProvisionResult = ProvisionResult.completed()
   })
 
   override def getStatus: GetStatus = _ => IO.pure(Some(ProvisionResult.completed()))

@@ -6,10 +6,18 @@ import it.agilelab.provisioners.features.provider.TfProvider
 import it.agilelab.provisioners.terraform.TerraformLogger.noLog
 import it.agilelab.provisioners.terraform.{ Terraform, TerraformModule, TerraformResult, TerraformVariables }
 import it.agilelab.spinframework.app.api.mapping.ProvisioningInfoMapper.InnerJson
-import it.agilelab.spinframework.app.features.compiler.{ ComponentDescriptor, ParserFactory, YamlDescriptor }
+import it.agilelab.spinframework.app.features.compiler.{
+  ComponentDescriptor,
+  ImportBlock,
+  ParserFactory,
+  ReverseChanges,
+  YamlDescriptor
+}
+import org.scalatest.EitherValues._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
+import java.io.File
 import java.nio.file.Files
 
 class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
@@ -273,6 +281,7 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
     val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
     val res             = tfProvider.provision(descriptor, Set.empty)
 
+    res.isSuccessful shouldBe true
     res.outputs.size shouldBe 1
     res.outputs.head.name shouldEqual "fiz"
     res.outputs.head.value.asString.get shouldEqual "biz"
@@ -521,6 +530,159 @@ class TerraformApplyTest extends AnyFlatSpec with should.Matchers {
 
     res.isSuccessful shouldBe true
     mockProcessor.command should include(s"""-var ownerPrincipals='user.name@email.com,dev'""")
+  }
+
+  it should "successfully retrieve imports from descriptor" in {
+
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Name Surname
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |        specific:
+        |            customTableName: healthcare_vaccinations_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |            reverse:
+        |               imports:
+        |                 - id: foo
+        |                   to: bar
+        |                 - id: fiz
+        |                   to: biz
+        |               skipSafetyChecks: false
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+
+    val res = ReverseChanges.reverseChangesFromDescriptor(descriptor)
+    res.value.imports.size shouldBe 2
+    res.value.imports.shouldBe(List(ImportBlock(id = "foo", to = "bar"), ImportBlock(id = "fiz", to = "biz")))
+  }
+
+  it should "successfully retrieve 0 imports" in {
+
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Name Surname
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |        specific:
+        |            customTableName: healthcare_vaccinations_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |            reverse:
+        |             imports: []
+        |             skipSafetyChecks: false
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+    val res                             = ReverseChanges.reverseChangesFromDescriptor(descriptor)
+
+    res.value.imports.size shouldBe 0
+
+  }
+
+  it should "fail to retrieve imports" in {
+
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Name Surname
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |        specific:
+        |            customTableName: healthcare_vaccinations_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |            reverse:
+        |               imports:
+        |                 - id : foo
+        |                   wrong: bar
+        |                 - id : fiz
+        |                   to: biz
+        |               skipSafetyChecks: false
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+    val res                             = ReverseChanges.reverseChangesFromDescriptor(descriptor)
+
+    res.isLeft shouldBe true
+
+  }
+
+  "Terraform" should "perform apply with imports" in {
+
+    val outputString =
+      """
+        |{
+        |  "@level":"info",
+        |  "@message":"Outputs: 2",
+        |  "@module":"terraform.ui",
+        |  "@timestamp":"2023-09-04T14:19:04.774029+02:00",
+        |  "outputs":{
+        |	   "foo":{
+        |      "sensitive":true,
+        |      "type":"string",
+        |      "value":"bar"
+        |    },
+        |	   "fiz":{
+        |        "sensitive":false,
+        |        "type":"string",
+        |        "value":"biz"
+        |    }
+        |	 },
+        |  "type":"outputs"
+        |}
+        |""".stripMargin.replace("\n", "")
+
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Jhon Doe
+        |    intField: 33
+        |    doubleField: 33.9
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+        |        specific:
+        |            customTableName: healthcare_vaccinationsnb_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |            imports:
+        |             - id : foo
+        |               to: bar
+        |             - id : fiz
+        |               to: biz
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+
+    val mockProcessor = new MockProcessor(0, outputString)
+
+    val terraformBuilder = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+
+    val terraformModule =
+      TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.dataProductOwnerDisplayName"), "key")
+
+    val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
+    val res             = tfProvider.provision(descriptor, Set.empty)
+
+    res.outputs.size shouldBe 1
+    res.outputs.head.name shouldEqual "fiz"
+    res.outputs.head.value.asString.get shouldEqual "biz"
+    res.isSuccessful shouldBe true
+
   }
 
 }

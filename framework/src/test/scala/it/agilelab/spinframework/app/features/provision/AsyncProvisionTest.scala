@@ -19,6 +19,8 @@ class AsyncProvisionTest extends AsyncFlatSpec with should.Matchers with AsyncIO
     override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult = result
 
     override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult = result
+
+    override def doReverse(useCaseTemplateId: String, catalogInfo: Json, inputParams: Json): ProvisionResult = result
   }
 
   "fromSyncProvision" should "return the same provision output as the sync provision but wrapped in IO" in {

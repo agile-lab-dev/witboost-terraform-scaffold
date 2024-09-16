@@ -2,6 +2,7 @@ package it.agilelab.spinframework.app.features.provision
 
 import cats.effect.IO
 import com.typesafe.config.Config
+import io.circe.Json
 import it.agilelab.spinframework.app.api.generated.definitions.ProvisionInfo
 import it.agilelab.spinframework.app.config.Configuration.provisionerConfig
 import it.agilelab.spinframework.app.features.compiler.YamlDescriptor
@@ -11,6 +12,7 @@ trait AsyncProvision {
   def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean, cfg: Config = provisionerConfig): IO[ProvisionResult]
   def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config = provisionerConfig): IO[ProvisionResult]
   def doValidate(yamlDescriptor: YamlDescriptor): IO[ProvisionResult]
+  def doReverse(useCaseTemplateId: String, catalogInfo: Json, inputParams: Json): IO[ProvisionResult]
 }
 
 object AsyncProvision {
@@ -26,5 +28,8 @@ object AsyncProvision {
 
     override def doValidate(yamlDescriptor: YamlDescriptor): IO[ProvisionResult] =
       IO.blocking(provision.doValidate(yamlDescriptor))
+
+    override def doReverse(useCaseTemplateId: String, catalogInfo: Json, inputParams: Json): IO[ProvisionResult] =
+      IO.blocking(provision.doReverse(useCaseTemplateId, catalogInfo, inputParams))
   }
 }

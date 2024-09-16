@@ -1,14 +1,21 @@
 package it.agilelab.provisioners.terraform
 
-import java.io.IOException
+import io.circe.Json
+import it.agilelab.spinframework.app.features.compiler.ImportBlock
+import org.slf4j.{ Logger, LoggerFactory }
+
+import java.io.{ File, FileWriter, IOException }
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{ FileVisitResult, Files, Path, Paths, SimpleFileVisitor }
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success, Try, Using }
 
 object FilesUtils {
 
+  final private val logger: Logger = LoggerFactory.getLogger(getClass.getName)
+
   /** This utility creates a mirror of the terraform configuration, in a separate folder.
     * This permits to avoid problems about clashing files (i.e. tf state) when multiple components of the same useCaseTemplate are managed
+    *
     * @param inputPath is the terraform configuration folder
     * @return if successful, the new context folder
     */
@@ -35,6 +42,7 @@ object FilesUtils {
             .get(destinationDirectoryLocationPath.toString, source.toString.substring(sourceDirectoryLocation.length))
           Files.copy(source, destination)
         }
+
         copy(source)
 
       }
@@ -46,6 +54,7 @@ object FilesUtils {
   }
 
   /** this method is used to recursively delete the folder and its content
+    *
     * @param root is the path of the directory
     * @return if successful, the starting directory
     */
@@ -58,6 +67,7 @@ object FilesUtils {
             Files.delete(file)
             FileVisitResult.CONTINUE
           }
+
           override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
             Files.delete(dir)
             FileVisitResult.CONTINUE
@@ -70,6 +80,7 @@ object FilesUtils {
     }
 
   /** this method checks if a directory exists
+    *
     * @param root is the path of the directory
     * @return whether the directory exists
     */
@@ -77,4 +88,32 @@ object FilesUtils {
     Try {
       Files.isDirectory(root)
     }
+
+  /** This method creates an import.tf file based on the importBlockList received
+    *
+    * @param importBlockList is a list of `ImportBlock`
+    * @param context         is the context path where the file will be created
+    * @return whether the operation was successful or not
+    */
+  def createImportFile(importBlockList: Seq[ImportBlock], context: Path): Try[String] = {
+    val f = context.resolve("import.tf").toFile
+    Using(new FileWriter(f)) { fw =>
+      importBlockList.foreach { block =>
+        fw.write(
+          s"""
+             |import {
+             |  to = ${block.to}
+             |  id = "${block.id}"
+             |}
+             |""".stripMargin
+        )
+      }
+      f.getPath
+    }.toEither match {
+      case Left(ex)    =>
+        logger.error("It was not possible to create the import.tf file", ex)
+        Failure(ex)
+      case Right(path) => Success(path)
+    }
+  }
 }

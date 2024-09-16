@@ -11,24 +11,33 @@ private[terraform] class TerraformCommandsWrapper(
 
   private val inputOption = "-input=false"
 
-  private def run(command: String) = {
+  private def run(command: String, printOutput: Boolean = true) = {
     logger.println(() => command)
     val processResult = processor.run(command)
     val result        = new TerraformResult(processResult)
-    logger.println(() => result.buildOutputString)
+    if (printOutput) {
+      logger.println(() => result.buildOutputString)
+    }
     result
   }
 
   override def doApply(vars: TerraformVariables): TerraformResult =
     run(s"terraform -chdir=$directory apply ${vars.toOptions} -auto-approve $jsonOption $inputOption")
 
-  override def doPlan(vars: TerraformVariables): TerraformResult = {
-    val result = run(s"terraform -chdir=$directory plan ${vars.toOptions} $jsonOption $inputOption -out tfplan")
-    if (result.isSuccess) {
-      processor.run(s"terraform -chdir=$directory show tfplan")
+  override def doPlan(vars: TerraformVariables): TerraformResult =
+    run(s"terraform -chdir=$directory plan ${vars.toOptions} $jsonOption $inputOption -out tfplan")
+
+  override def getHumanReadablePlan(planRes: TerraformResult): Option[String] =
+    if (planRes.isSuccess) {
+      val r = run(s"terraform -chdir=$directory show tfplan", printOutput = false)
+      if (r.isSuccess) {
+        Some(r.buildOutputString)
+      } else {
+        None
+      }
+    } else {
+      None
     }
-    result
-  }
 
   override def doInit(configs: BackendConfigs): TerraformResult =
     run(
