@@ -32,7 +32,7 @@ class MockCloudProvider extends CloudProvider {
     ProvisionResult.completed()
   }
 
-  override def validate(descriptor: ComponentDescriptor): ProvisionResult = {
+  override def validate(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult = {
     println("######### /validate #########")
     println(descriptor)
     ProvisionResult.completed()

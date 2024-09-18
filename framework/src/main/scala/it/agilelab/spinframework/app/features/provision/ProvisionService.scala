@@ -85,7 +85,7 @@ class ProvisionService(
     }
   }
 
-  override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult = {
+  override def doValidate(yamlDescriptor: YamlDescriptor, cfg: Config = provisionerConfig): ProvisionResult = {
 
     val result: CompileResult = compile.doCompile(yamlDescriptor)
     if (!result.isSuccess) return ProvisionResult.failure(result.errors)
@@ -94,10 +94,20 @@ class ProvisionService(
       useCaseTemplateId <-
         JsonPathUtils.getValue(result.descriptor.toString, useCaseTemplateIdJsonPath(result.descriptor.toString))
       cloudProvider     <- specific.cloudProvider(useCaseTemplateId)
-    } yield cloudProvider
+      owners            <- extractOwners(result.descriptor)
+    } yield (cloudProvider, useCaseTemplateId, owners)
+
     res match {
-      case Right(cloudProvider) => cloudProvider.validate(result.descriptor)
-      case Left(message)        => ProvisionResult.failure(Seq(ErrorMessage(message)))
+      case Right((cloudProvider, useCaseTemplateId, owners)) =>
+        val moduleConfig = cfg.getConfig(s"""terraform."$useCaseTemplateId"""")
+        mapWitOwners(owners, moduleConfig) match {
+          case Right(mappedOwners) =>
+            cloudProvider.validate(result.descriptor, mappedOwners)
+          case Left(seq)           =>
+            ProvisionResult.failure(seq.map(ErrorMessage))
+        }
+
+      case Left(message) => ProvisionResult.failure(Seq(ErrorMessage(message)))
     }
   }
 
@@ -201,7 +211,7 @@ class ProvisionService(
             Right(mappedOwners)
         }
       case Failure(f) =>
-        logger.error("Error in mapping Witboost identities in Cloud identities", f)
+        logger.error("Error in mapping Witboost identities to Cloud identities", f)
         Left(
           Seq(
             s"An unexpected error occurred while instantiating the Principal Mapper Plugin. Please try again later. If the issue still persists, contact the platform team for assistance! Detailed error: ${f.getMessage}"

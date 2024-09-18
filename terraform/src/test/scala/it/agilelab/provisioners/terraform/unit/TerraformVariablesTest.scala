@@ -236,7 +236,7 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
 
   "validate" should "succeed with variables from config" in {
 
-    val res = tfProvider.validate(descriptor)
+    val res = tfProvider.validate(descriptor, Set.empty)
     res.isSuccessful shouldBe true
 
   }
@@ -258,7 +258,7 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
           ""
         )
       )
-    val res            = tfProviderFail.validate(descriptor)
+    val res            = tfProviderFail.validate(descriptor, Set.empty)
     res.isSuccessful shouldBe false
 
   }
@@ -284,14 +284,14 @@ class TerraformVariablesTest extends AnyFlatSpec with should.Matchers with Frame
         )
       )
 
-    val res = tfProviderFail.validate(descriptor)
+    val res = tfProviderFail.validate(descriptor, Set.empty)
     res.isSuccessful shouldBe true
 
   }
 
   "validate" should "fails with variables from config" in {
 
-    val res = tfProviderFail.validate(descriptor)
+    val res = tfProviderFail.validate(descriptor, Set.empty)
     res.isSuccessful shouldBe false
 
   }

@@ -29,7 +29,7 @@ class ValidateHandlerTest extends HandlerTestBase {
       ProvisionResult.completed()
     override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult  =
       ProvisionResult.completed()
-    override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult                                 =
+    override def doValidate(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult                    =
       ProvisionResult.completed()
     override def doReverse(useCaseTemplateId: String, catalogInfo: Json, inputParams: Json): ProvisionResult =
       ProvisionResult.completed()
@@ -54,7 +54,7 @@ class ValidateHandlerTest extends HandlerTestBase {
   it should "return a 200 with a list of errors when the validation fails" in {
     val errors           = Seq(ErrorMessage("error1"), ErrorMessage("error2"))
     val failingProvision = new ProvisionStub {
-      override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult =
+      override def doValidate(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult =
         ProvisionResult.failure(errors)
     }
 
@@ -74,7 +74,7 @@ class ValidateHandlerTest extends HandlerTestBase {
 
   it should "return a 500 with with meaningful error on validate exception" in {
     val failing = new ProvisionStub {
-      override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult =
+      override def doValidate(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult =
         throw new Exception("Error!")
     }
 

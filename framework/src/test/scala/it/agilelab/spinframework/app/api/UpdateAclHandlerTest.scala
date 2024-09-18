@@ -27,7 +27,7 @@ class UpdateAclHandlerTest extends HandlerTestBase {
       ProvisionResult.completed()
     override def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config): ProvisionResult  =
       ProvisionResult.completed()
-    override def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult                                 = ProvisionResult.completed()
+    override def doValidate(yamlDescriptor: YamlDescriptor, cfg: Config): ProvisionResult                    = ProvisionResult.completed()
     override def doReverse(useCaseTemplateId: String, catalogInfo: Json, inputParams: Json): ProvisionResult =
       ProvisionResult.completed()
   }

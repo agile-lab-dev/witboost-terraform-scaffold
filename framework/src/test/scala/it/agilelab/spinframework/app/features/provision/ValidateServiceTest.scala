@@ -1,7 +1,7 @@
 package it.agilelab.spinframework.app.features.provision
 
 import it.agilelab.spinframework.app.cloudprovider.CloudProviderStub
-import it.agilelab.spinframework.app.config.SynchronousSpecificProvisionerDependencies
+import it.agilelab.spinframework.app.config.{ PrincipalMapperPluginLoader, SynchronousSpecificProvisionerDependencies }
 import it.agilelab.spinframework.app.features.compiler._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
@@ -13,16 +13,18 @@ class ValidateServiceTest extends AnyFlatSpec with should.Matchers {
   "The provision service" should "return a 'completed' result for the validation component" in {
     val validator: DescriptorValidator     = _ => ValidationResult.create
     val compile                            = new CompileService(parser, validator)
-    val cProvider                          = CloudProviderStub.validate(_ => ProvisionResult.completed())
+    val cProvider                          = CloudProviderStub.validate((_, _) => ProvisionResult.completed())
     val deps                               = new SynchronousSpecificProvisionerDependencies {
       override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
     }
     val provisionService: ProvisionService =
-      new ProvisionService(compile, deps, null)
+      new ProvisionService(compile, deps, new PrincipalMapperPluginLoader())
 
     val yamlDescriptor = YamlDescriptor("""
       dataProduct:
+        dataProductOwner: user:name.surname_email.com
+        devGroup: group:dev
         components:
           - kind: workload
             id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
@@ -60,15 +62,17 @@ class ValidateServiceTest extends AnyFlatSpec with should.Matchers {
     val validator: DescriptorValidator = _ => ValidationResult.create
     val compile                        = new CompileService(parser, validator)
     val cloudProviderErrors            = Seq(ErrorMessage("some cloud error"))
-    val cProvider                      = CloudProviderStub.validate(_ => ProvisionResult.failure(cloudProviderErrors))
+    val cProvider                      = CloudProviderStub.validate((_, _) => ProvisionResult.failure(cloudProviderErrors))
     val deps                           = new SynchronousSpecificProvisionerDependencies {
       override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
     }
-    val provision: ProvisionService    = new ProvisionService(compile, deps, null)
+    val provision: ProvisionService    = new ProvisionService(compile, deps, new PrincipalMapperPluginLoader())
 
     val yamlDescriptor = YamlDescriptor("""
       dataProduct:
+        dataProductOwner: user:name.surname_email.com
+        devGroup: group:dev
         components:
           - kind: workload
             id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
@@ -87,7 +91,7 @@ class ValidateServiceTest extends AnyFlatSpec with should.Matchers {
     val validator: DescriptorValidator = _ => ValidationResult.create
     val compile                        = new CompileService(parser, validator)
     val cloudProviderErrors            = Seq(ErrorMessage("some cloud error"))
-    val cProvider                      = CloudProviderStub.validate(_ => ProvisionResult.failure(cloudProviderErrors))
+    val cProvider                      = CloudProviderStub.validate((_, _) => ProvisionResult.failure(cloudProviderErrors))
     val deps                           = new SynchronousSpecificProvisionerDependencies {
       override def descriptorValidator: DescriptorValidator                       = validator
       override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Left("something bad happened here")
@@ -108,6 +112,41 @@ class ValidateServiceTest extends AnyFlatSpec with should.Matchers {
 
     validationResult.isSuccessful shouldBe false
     validationResult.errors.head shouldBe ErrorMessage("something bad happened here")
+  }
+
+  "The provision service" should "extract mappedOwners and pass them to the cloudProvider" in {
+
+    val validator: DescriptorValidator     = _ => ValidationResult.create
+    val compile                            = new CompileService(parser, validator)
+    val cProvider                          = CloudProviderStub.validate { (_, mappedOwners) =>
+      assert(mappedOwners.size == 2)
+      assert(mappedOwners.contains("user:name.surname_email.com"))
+      assert(mappedOwners.contains("group:dev"))
+      ProvisionResult.completed()
+    }
+    val deps                               = new SynchronousSpecificProvisionerDependencies {
+      override def descriptorValidator: DescriptorValidator                       = validator
+      override def cloudProvider(moduleId: String): Either[String, CloudProvider] = Right(cProvider)
+    }
+    val principalMapperPluginLoader        = new PrincipalMapperPluginLoader()
+    val provisionService: ProvisionService =
+      new ProvisionService(compile, deps, principalMapperPluginLoader)
+
+    val yamlDescriptor = YamlDescriptor("""
+      dataProduct:
+        dataProductOwner: user:name.surname_email.com
+        devGroup: group:dev
+        components:
+          - kind: workload
+            id: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+            useCaseTemplateId: urn:dmb:utm:airbyte-standard:0.0.0
+      componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations-nb:0:airbyte-workload
+    """)
+
+    val validationResult: ProvisionResult = provisionService.doValidate(yamlDescriptor)
+
+    validationResult.isSuccessful shouldBe true
+
   }
 
 }

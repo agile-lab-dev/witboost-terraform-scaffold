@@ -9,7 +9,7 @@ object CloudProviderStub {
   type ProvisionFunction   = (ComponentDescriptor, Set[String]) => ProvisionResult
   type UnprovisionFunction = (ComponentDescriptor, Set[String], Boolean) => ProvisionResult
   type UpdateAclFcuntion   = (ComponentDescriptor, ComponentDescriptor, Set[String]) => ProvisionResult
-  type ValidateFunction    = ComponentDescriptor => ProvisionResult
+  type ValidateFunction    = (ComponentDescriptor, Set[String]) => ProvisionResult
   type ReverseFunction     = (String, ComponentDescriptor, InputParams) => ProvisionResult
 
   def provision(function: ProvisionFunction): CloudProviderStub     = new CloudProviderStub {
@@ -25,7 +25,8 @@ object CloudProviderStub {
       function.apply(descriptor, mappedOwners, removeData)
   }
   def validate(function: ValidateFunction): CloudProviderStub       = new CloudProviderStub {
-    override def validate(descriptor: ComponentDescriptor): ProvisionResult = function.apply(descriptor)
+    override def validate(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult =
+      function.apply(descriptor, mappedOwners)
   }
 
   def reverse(function: ReverseFunction): CloudProviderStub = new CloudProviderStub {
@@ -73,7 +74,8 @@ class CloudProviderStub extends CloudProvider {
   ): ProvisionResult                                                                                  =
     throw new UnsupportedOperationException
 
-  override def validate(descriptor: ComponentDescriptor): ProvisionResult = throw new UnsupportedOperationException
+  override def validate(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult =
+    throw new UnsupportedOperationException
 
   override def reverse(
     useCaseTemplateId: String,

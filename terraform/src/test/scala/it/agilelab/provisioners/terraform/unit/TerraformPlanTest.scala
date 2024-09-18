@@ -18,7 +18,11 @@ import java.nio.file.Files
 
 class TerraformPlanTest extends AnyFlatSpec with should.Matchers {
 
-  val tempFolder = Files.createTempDirectory("tmp-")
+  val tempFolder            = Files.createTempDirectory("tmp-")
+  val outputString5destroys =
+    "{\"@level\":\"info\",\"@message\":\"Plan: 2 to import, 0 to add, 1 to change, 5 to destroy.\",\"@module\":\"terraform.ui\",\"@timestamp\":\"2024-08-12T10:46:34.822727+02:00\",\"changes\":{\"add\":2,\"change\":0,\"import\":1,\"remove\":5,\"operation\":\"plan\"},\"type\":\"change_summary\"}"
+  val outputString2Adds     =
+    "{\"@level\":\"info\",\"@message\":\"Plan: 0 to import, 2 to add, 0 to change, 0 to destroy.\",\"@module\":\"terraform.ui\",\"@timestamp\":\"2024-08-12T10:46:34.822727+02:00\",\"changes\":{\"add\":2,\"change\":0,\"import\":0,\"remove\":0,\"operation\":\"plan\"},\"type\":\"change_summary\"}"
 
   "Terraform" should "perform plan" in {
 
@@ -176,13 +180,7 @@ class TerraformPlanTest extends AnyFlatSpec with should.Matchers {
     mockLogger.lastLine shouldBe empty
   }
 
-  val outputString5destroys =
-    "{\"@level\":\"info\",\"@message\":\"Plan: 2 to import, 0 to add, 1 to change, 5 to destroy.\",\"@module\":\"terraform.ui\",\"@timestamp\":\"2024-08-12T10:46:34.822727+02:00\",\"changes\":{\"add\":2,\"change\":0,\"import\":1,\"remove\":5,\"operation\":\"plan\"},\"type\":\"change_summary\"}"
-
   "Terraform" should "perform plan but block for resources to destroy and skipSafetyChecks = false" in {
-
-    val outputString =
-      "{\"@level\":\"info\",\"@message\":\"Plan: 2 to import, 0 to add, 1 to change, 5 to destroy.\",\"@module\":\"terraform.ui\",\"@timestamp\":\"2024-08-12T10:46:34.822727+02:00\",\"changes\":{\"add\":2,\"change\":0,\"import\":1,\"remove\":5,\"operation\":\"plan\"},\"type\":\"change_summary\"}"
 
     class CustomMockProcessor extends Processor {
       private val buffer                               = new StringBuffer()
@@ -190,7 +188,7 @@ class TerraformPlanTest extends AnyFlatSpec with should.Matchers {
         if (command.contains("init"))
           new ProcessResult(0, new MockProcessOutput(""))
         else if (command.contains("plan"))
-          new ProcessResult(0, new MockProcessOutput(outputString))
+          new ProcessResult(0, new MockProcessOutput(outputString5destroys))
         else
           new ProcessResult(1, new MockProcessOutput(""))
     }
@@ -224,10 +222,10 @@ class TerraformPlanTest extends AnyFlatSpec with should.Matchers {
       TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.dataProductOwnerDisplayName"), "key")
 
     val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
-    val res             = tfProvider.validate(descriptor = descriptor)
+    val res             = tfProvider.validate(descriptor = descriptor, mappedOwners = Set.empty)
 
     res.isSuccessful shouldBe false
-    res.errors.isEmpty shouldBe false
+    res.errors.sizeIs > 0
     res.errors.last.description should include(
       "The plan is proposing to destroy 5 resources, but the skipSafetyChecks is disabled."
     )
@@ -236,16 +234,13 @@ class TerraformPlanTest extends AnyFlatSpec with should.Matchers {
 
   "Terraform" should "perform plan but proceed for resources to destroy and skipSafetyChecks = true" in {
 
-    val outputString =
-      "{\"@level\":\"info\",\"@message\":\"Plan: 2 to import, 0 to add, 1 to change, 5 to destroy.\",\"@module\":\"terraform.ui\",\"@timestamp\":\"2024-08-12T10:46:34.822727+02:00\",\"changes\":{\"add\":2,\"change\":0,\"import\":1,\"remove\":5,\"operation\":\"plan\"},\"type\":\"change_summary\"}"
-
     class CustomMockProcessor extends Processor {
       private val buffer                               = new StringBuffer()
       override def run(command: String): ProcessResult =
         if (command.contains("init"))
           new ProcessResult(0, new MockProcessOutput(""))
         else if (command.contains("plan"))
-          new ProcessResult(0, new MockProcessOutput(outputString))
+          new ProcessResult(0, new MockProcessOutput(outputString5destroys))
         else
           new ProcessResult(1, new MockProcessOutput(""))
     }
@@ -279,10 +274,60 @@ class TerraformPlanTest extends AnyFlatSpec with should.Matchers {
       TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.dataProductOwnerDisplayName"), "key")
 
     val tfProvider      = new TfProvider(terraformBuilder, terraformModule)
-    val res             = tfProvider.validate(descriptor = descriptor)
+    val res             = tfProvider.validate(descriptor = descriptor, Set.empty)
 
     res.isSuccessful shouldBe true
 
   }
 
+  "Terraform" should "perform plan passing the ownerPrincipals variable" in {
+
+    class CustomMockProcessor extends Processor {
+      private val buffer  = new StringBuffer()
+      def command: String = buffer.toString
+      override def run(command: String): ProcessResult = {
+        buffer.append(command)
+        if (command.contains("init"))
+          new ProcessResult(0, new MockProcessOutput(""))
+        else if (command.contains("plan"))
+          new ProcessResult(0, new MockProcessOutput(outputString2Adds))
+        else
+          new ProcessResult(1, new MockProcessOutput(""))
+      }
+    }
+
+    val parser                          = ParserFactory.parser()
+    val descriptor: ComponentDescriptor = YamlDescriptor(
+      """
+        |dataProduct:
+        |    dataProductOwnerDisplayName: Name Surname
+        |    components:
+        |      - kind: outputport
+        |        id: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |        specific:
+        |            customTableName: healthcare_vaccinations_0_hasuraoutputportvaccinations
+        |            resourceGroup: healthcare_rg
+        |componentIdToProvision: urn:dmb:cmp:healthcare:vaccinations:0:hasura-output-port
+        |
+        |""".stripMargin
+    ).parse(parser).descriptor
+
+    val mockProcessor = new CustomMockProcessor
+
+    val terraformBuilder = Terraform()
+      .processor(mockProcessor)
+      .withLogger(noLog)
+
+    val terraformModule =
+      TerraformModule(tempFolder.toString, Map.empty, Map("key" -> "$.dataProduct.dataProductOwnerDisplayName"), "key")
+
+    val mappedOwners    = Set("user.name@email.com", "dev")
+
+    val tfProvider = new TfProvider(terraformBuilder, terraformModule)
+    val res        = tfProvider.validate(descriptor = descriptor, mappedOwners)
+
+    res.isSuccessful shouldBe true
+    mockProcessor.command should include(s"""-var ownerPrincipals='user.name@email.com,dev'""")
+
+  }
 }

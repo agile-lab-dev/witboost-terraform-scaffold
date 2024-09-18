@@ -10,6 +10,6 @@ trait Provision {
   def doProvisioning(yamlDescriptor: YamlDescriptor, cfg: Config = provisionerConfig): ProvisionResult
   def doUnprovisioning(yaml: YamlDescriptor, removeData: Boolean, cfg: Config = provisionerConfig): ProvisionResult
   def doUpdateAcl(provisionInfo: ProvisionInfo, refs: Set[String], cfg: Config = provisionerConfig): ProvisionResult
-  def doValidate(yamlDescriptor: YamlDescriptor): ProvisionResult
+  def doValidate(yamlDescriptor: YamlDescriptor, cfg: Config = provisionerConfig): ProvisionResult
   def doReverse(useCaseTemplateId: String, catalogInfo: Json, inputParams: Json): ProvisionResult
 }

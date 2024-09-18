@@ -156,7 +156,7 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
 
   }
 
-  override def validate(descriptor: ComponentDescriptor): ProvisionResult = {
+  override def validate(descriptor: ComponentDescriptor, mappedOwners: Set[String]): ProvisionResult = {
 
     val tfPath  = Path.of(terraformModule.path)
     val aclPath = Path.of(tfPath.toString, "acl")
@@ -215,7 +215,9 @@ class TfProvider(terraformBuilder: TerraformBuilder, terraformModule: TerraformM
               }
               FilesUtils.createImportFile(reverseChanges.imports, Path.of(contextPath)) match {
                 case Success(_) =>
-                  val res = terraform.doPlan(vars)
+                  val extendedVars =
+                    TerraformVariables(vars.variables + ("ownerPrincipals" -> mappedOwners.mkString(",")))
+                  val res          = terraform.doPlan(extendedVars)
                   if (res.isSuccess) {
                     val plan = terraform.getHumanReadablePlan(res)
                     plan.fold(logger.warn("It was not possible to extract an human readable version of the plan"))(s =>

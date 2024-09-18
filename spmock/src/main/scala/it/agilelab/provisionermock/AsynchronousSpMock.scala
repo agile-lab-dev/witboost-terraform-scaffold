@@ -33,7 +33,8 @@ class AsynchronousMockDependencies extends AsynchronousSpecificProvisionerDepend
       refs: Set[String]
     ): ProvisionResult                                                                                  =
       ProvisionResult.completed()
-    override def validate(descriptor: ComponentDescriptor): ProvisionResult                             = ProvisionResult.completed()
+    override def validate(descriptor: ComponentDescriptor, owners: Set[String]): ProvisionResult        =
+      ProvisionResult.completed()
 
     override def reverse(
       useCaseTemplateId: String,
